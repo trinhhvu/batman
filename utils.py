@@ -17,15 +17,16 @@ import shutil
 def get_ffmpeg_path():
     """Returns the absolute path to ffmpeg, cross-platform."""
     if getattr(sys, 'frozen', False):
-        # Running inside PyInstaller bundle
-        base_path = os.path.dirname(sys.executable)
+        # PyInstaller --onefile extracts bundled files to sys._MEIPASS (temp dir)
+        # sys.executable points to the actual binary, NOT where bundled files live
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
     else:
         # Running as normal Python script
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        bundle_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Platform-specific binary name
     ffmpeg_name = "ffmpeg.exe" if platform.system() == "Windows" else "ffmpeg"
-    local_path = os.path.join(base_path, ffmpeg_name)
+    local_path = os.path.join(bundle_dir, ffmpeg_name)
 
     # Check local bundled ffmpeg first
     if os.path.exists(local_path):
