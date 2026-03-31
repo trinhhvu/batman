@@ -4,7 +4,7 @@ set NAME="Batman v2"
 set MAIN=..\..\main.py
 
 echo [BUILDING BATMAN V2 FOR WINDOWS]
-pyinstaller --noconfirm --onefile --windowed ^
+python -m PyInstaller --noconfirm --onefile --windowed ^
     --icon "%ICON%" ^
     --name %NAME% ^
     --add-data "../../assets;assets" ^
