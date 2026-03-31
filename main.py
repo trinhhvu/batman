@@ -19,17 +19,24 @@ class VideoCard(QFrame):
         self.parent_app = parent_app
         self.initUI()
 
+    def copy_to_clipboard(self, text):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+        self.copy_btn.setText("DONE!")
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(1500, lambda: self.copy_btn.setText("COPY"))
+
     def initUI(self):
         self.setObjectName("VideoCard")
         self.setFixedWidth(480)
         self.setStyleSheet("""
             QFrame#VideoCard {
-                background-color: #1e1e2e;
-                border: 1px solid #313244;
-                border-radius: 12px;
+                background-color: #1a1a2a;
+                border: 2px solid #000000;
+                border-radius: 20px;
             }
             QFrame#VideoCard:hover {
-                border: 1px solid #89b4fa;
+                background-color: #1e1e2e;
             }
         """)
         
@@ -39,7 +46,7 @@ class VideoCard(QFrame):
 
         self.thumb_container = QFrame()
         self.thumb_container.setFixedHeight(270)
-        self.thumb_container.setStyleSheet("background-color: #000000; border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom: 1px solid #313244;")
+        self.thumb_container.setStyleSheet("background-color: #000000; border-top-left-radius: 20px; border-top-right-radius: 20px; border-bottom: 1px solid #313244;")
         thumb_layout = QVBoxLayout(self.thumb_container)
         thumb_layout.setContentsMargins(0,0,0,0)
 
@@ -67,8 +74,8 @@ class VideoCard(QFrame):
         body_layout.setContentsMargins(20, 20, 20, 20)
         body_layout.setSpacing(15)
 
-        title_box = QVBoxLayout()
-        title_box.setSpacing(5)
+        title_header = QHBoxLayout()
+        title_header.setSpacing(10)
         
         title_str = (self.data.get('title') or 'N/A').upper()
         title_label = QLabel(title_str)
@@ -76,25 +83,54 @@ class VideoCard(QFrame):
         title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         title_label.setStyleSheet("color: #e3e0f7; font-size: 16px; font-weight: 800; line-height: 1.2;")
         
+        self.copy_btn = QPushButton("COPY")
+        self.copy_btn.setFixedWidth(50)
+        self.copy_btn.setFlat(True) # Makes it look like a text link
+        self.copy_btn.setCursor(Qt.PointingHandCursor)
+        self.copy_btn.setStyleSheet("""
+            QPushButton {
+                color: #8d919b;
+                font-size: 10px;
+                font-weight: bold;
+                border: none;
+                background: transparent;
+                text-align: right;
+                padding-right: 5px;
+            }
+            QPushButton:hover {
+                color: #89b4fa;
+            }
+        """)
+        self.copy_btn.clicked.connect(lambda: self.copy_to_clipboard(title_str))
+        
+        title_header.addWidget(title_label, 1)
+        title_header.addWidget(self.copy_btn, 0)
+
         identity_label = QLabel(f"<span style='color: #89b4fa; font-weight: bold;'>{self.data.get('channel') or 'N/A'}</span> <span style='color: #45475a;'>•</span> <span style='color: #cdd6f4;'>{self.data.get('owner') or 'N/A'}</span>")
         identity_label.setStyleSheet("font-size: 12px;")
         identity_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
-        title_box.addWidget(title_label)
+        title_box = QVBoxLayout()
+        title_box.setSpacing(5)
+        title_box.addLayout(title_header)
         title_box.addWidget(identity_label)
 
         stats_frame = QFrame()
-        stats_frame.setStyleSheet("border-top: 1px solid #313244; border-bottom: 1px solid #313244; padding: 10px 0px;")
+        stats_frame.setStyleSheet("padding: 5px 0px;")
         stats_layout = QHBoxLayout(stats_frame)
-        stats_layout.setContentsMargins(0, 10, 0, 10)
-        stats_layout.setSpacing(0)
+        stats_layout.setContentsMargins(0, 5, 0, 5)
+        stats_layout.setSpacing(10) # Added spacing between boxes
 
         def create_stat_item(label, value, color="#a6e3a1", has_border=True):
             item = QFrame()
-            if has_border:
-                item.setStyleSheet("border-left: 1px solid #313244; padding-left: 15px;")
-            else:
-                item.setStyleSheet("padding-left: 0px;")
+            item.setStyleSheet("""
+                QFrame {
+                    background-color: #131323;
+                    border: 1px solid #313244;
+                    border-radius: 10px;
+                    padding: 8px;
+                }
+            """)
             l = QVBoxLayout(item)
             l.setContentsMargins(0,0,0,0)
             l.setSpacing(2)
@@ -107,9 +143,10 @@ class VideoCard(QFrame):
             l.addWidget(val)
             return item
 
-        v_total = int(self.data.get('views_total') or 0)
+        # Ensure total views is at least as large as specific periods (prevent API lag inconsistency)
         v_24h = int(self.data.get('views_last_day') or 0)
         v_1h = int(self.data.get('views_last_hour') or 0)
+        v_total = max(int(self.data.get('views_total') or 0), v_24h, v_1h)
 
         stats_layout.addWidget(create_stat_item("Total Views", f"{v_total:,}", "#99d595", False))
         stats_layout.addWidget(create_stat_item("Last Day", f"{v_24h:,}", "#89b4fa"))
@@ -118,7 +155,7 @@ class VideoCard(QFrame):
         geoblock = str(self.data.get('geoblocking') or 'allow')
         security_box = QFrame()
         if "deny" in geoblock:
-            security_box.setStyleSheet("background-color: rgba(243, 139, 168, 25); border: 1px solid rgba(243, 139, 168, 50); border-radius: 8px;")
+            security_box.setStyleSheet("background-color: rgba(243, 139, 168, 25); border-radius: 8px;") # Removed border
             sec_layout = QVBoxLayout(security_box)
             sec_status = QLabel(f"STATUS: DENY ({geoblock.split(',')[-1] if ',' in geoblock else geoblock})")
             sec_status.setStyleSheet("color: #f38ba8; font-size: 11px; font-weight: bold; text-transform: uppercase;")
@@ -127,7 +164,7 @@ class VideoCard(QFrame):
             sec_layout.addWidget(sec_status)
             sec_layout.addWidget(sec_desc)
         else:
-            security_box.setStyleSheet("background-color: rgba(166, 227, 161, 20); border: 1px solid rgba(166, 227, 161, 40); border-radius: 8px;")
+            security_box.setStyleSheet("background-color: rgba(166, 227, 161, 20); border-radius: 8px;") # Removed border
             sec_layout = QVBoxLayout(security_box)
             sec_status = QLabel("STATUS: NO GEOBLOCK")
             sec_status.setStyleSheet("color: #a6e3a1; font-size: 11px; font-weight: bold;")
@@ -141,7 +178,7 @@ class VideoCard(QFrame):
         
         time_row = QHBoxLayout()
         time_txt = QLabel(f"Updated: {self.parent_app.format_updated_time(self.data.get('updated_time') or 0)}")
-        time_txt.setStyleSheet("color: #8d919b; font-size: 10px;")
+        time_txt.setStyleSheet("color: #8d919b; font-size: 11px;") # Increased font size
         time_txt.setTextInteractionFlags(Qt.TextSelectableByMouse)
         time_row.addWidget(time_txt)
         time_row.addStretch()
@@ -149,7 +186,7 @@ class VideoCard(QFrame):
         def create_link_row(label, url):
             row = QHBoxLayout()
             txt = QLabel(f"{label}: <a href='{url}' style='color: #89b4fa; text-decoration: none;'>{url}</a>")
-            txt.setStyleSheet("color: #8d919b; font-size: 10px;")
+            txt.setStyleSheet("color: #8d919b; font-size: 11px;") # Increased font size
             txt.setOpenExternalLinks(True)
             txt.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
             row.addWidget(txt)
@@ -178,7 +215,7 @@ class DailymotionVideoInfoApp(QWidget):
 
     def initUI(self):
         self.setWindowTitle("batman v1")
-        self.setMinimumSize(1150, 850)
+        self.setMinimumSize(550, 600) # Reduced from 1150x850 to allow smaller windows
         
         self.setStyleSheet("""
             QWidget {
@@ -330,6 +367,15 @@ class DailymotionVideoInfoApp(QWidget):
             res = requests.get(url, timeout=10)
             if res.status_code == 200:
                 data = res.json()
+                
+                # Logic Fix: Sync total views with daily/hourly data if API lag occurs
+                v_total = int(data.get('views_total') or 0)
+                v_day = int(data.get('views_last_day') or 0)
+                v_hour = int(data.get('views_last_hour') or 0)
+                
+                # Use max() to ensure logic is correct: Total must be >= any sub-period
+                data['views_total'] = max(v_total, v_day, v_hour)
+                
                 self.video_data_list.append(data)
                 card = VideoCard(data, self)
                 row = self.card_count // 2
