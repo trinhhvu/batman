@@ -1,0 +1,7 @@
+PyQt5>=5.15
+yt-dlp
+requests
+pillow
+pandas
+openpyxl
+pyinstaller
