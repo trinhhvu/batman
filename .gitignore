@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+
+# Build artifacts
+dist/
+build/
+*.spec
+*.egg-info/
+
+# App crashes
+crash.log
+
+# Environment
+.env
+venv/
+.venv/
+env/
+
+# Downloads (user data, not source)
+downloads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

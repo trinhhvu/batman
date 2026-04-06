@@ -1,0 +1,9 @@
+{
+    "monitored_channels": [],
+    "check_interval_minutes": 30,
+    "download_folder": "C:/Users/trinh/OneDrive/Desktop",
+    "max_concurrent_syncs": 1,
+    "api_key": "",
+    "api_secret": "",
+    "access_token": null
+}
