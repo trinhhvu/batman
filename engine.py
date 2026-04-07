@@ -145,14 +145,22 @@ class DownloadEngine:
         Uses browser headers + impersonation to bypass 401 errors.
         """
         opts = _get_base_opts()
-        # analyze does not need the impersonate key if the yt-dlp version
-        # doesn't support it — fall back gracefully
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
-        except yt_dlp.utils.YoutubeDLError as e:
+        except Exception as e:
+            # If impersonate target fails, try without it
+            if "Impersonate target" in str(e):
+                opts.pop('impersonate', None)
+                opts['quiet'] = False # for debugging if it still fails
+                try:
+                    with yt_dlp.YoutubeDL(opts) as ydl:
+                        return ydl.extract_info(url, download=False)
+                except Exception:
+                    pass
+            
+            # Final fallback: try with cookies from browser
             if '401' in str(e) or 'Unauthorized' in str(e):
-                # Last resort: try with cookiesfrombrowser
                 fallback_opts = _get_base_opts()
                 fallback_opts.pop('impersonate', None)
                 try:
@@ -207,10 +215,23 @@ class DownloadEngine:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
-        except DownloadCancelled:
-            self.cleanup_partial_files()
-            raise
-        except Exception:
+        except Exception as e:
+            # Fallback if impersonate target is missing during download too
+            if "Impersonate target" in str(e):
+                ydl_opts.pop('impersonate', None)
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([url])
+                        return
+                except DownloadCancelled:
+                    self.cleanup_partial_files()
+                    raise
+                except Exception:
+                    pass
+            
+            if isinstance(e, DownloadCancelled):
+                self.cleanup_partial_files()
+                raise
             self.cleanup_partial_files()
             raise
 
