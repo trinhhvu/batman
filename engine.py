@@ -1,16 +1,13 @@
 """
-engine.py — Download Engine with anti-bot bypass + cancellation support
-=========================================================================
+engine.py — Download Engine with cancellation support
+=======================================================
 Wraps yt-dlp for video analysis and downloading.
-
-Key features:
-  1. Browser headers — giả lập Chrome user-agent để qua Dailymotion 401
-  2. Auto-detect impersonation — chỉ dùng nếu curl_cffi có sẵn
-  3. Cancel support — raises DownloadCancelled + cleanup partial files
-  4. Retry & fragment resilience — 20 retries, 16 concurrent fragments
+Supports cancel_download() which:
+  1. Sets a flag to interrupt the progress hook (raises DownloadCancelled)
+  2. Cleans up ALL partial files left by yt-dlp in the download folder
+     (.part, .ytdl, frag_* temp files from concurrent fragment downloads)
 
 Dependencies: yt-dlp, utils.py
-Optional: curl_cffi (for TLS impersonation — install with: pip install curl_cffi)
 """
 
 import yt_dlp
@@ -22,66 +19,16 @@ from utils import get_ffmpeg_path
 
 
 # ──────────────────────────────────────────────────────────────
-# Auto-detect: can we use yt-dlp's impersonate feature?
-# ──────────────────────────────────────────────────────────────
-_CAN_IMPERSONATE = False
-try:
-    import curl_cffi  # noqa: F401
-    _CAN_IMPERSONATE = True
-except ImportError:
-    pass
-
-
-# ──────────────────────────────────────────────────────────────
-# Custom exception
+# Custom exception used to abort an in-progress download cleanly
 # ──────────────────────────────────────────────────────────────
 class DownloadCancelled(Exception):
     """Raised inside the yt-dlp progress hook to abort downloading."""
     pass
 
 
-# ──────────────────────────────────────────────────────────────
-# Browser-like headers (always used, no extra deps needed)
-# ──────────────────────────────────────────────────────────────
-_BROWSER_HEADERS = {
-    'User-Agent': (
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/124.0.0.0 Safari/537.36'
-    ),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'DNT': '1',
-    'Referer': 'https://www.dailymotion.com/',
-    'Origin': 'https://www.dailymotion.com',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-}
-
-
-def _get_base_opts() -> dict:
-    """Build base yt-dlp options. Only adds 'impersonate' if curl_cffi exists."""
-    opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'http_headers': dict(_BROWSER_HEADERS),
-        'sleep_interval': 1,
-        'max_sleep_interval': 3,
-        'retries': 20,
-        'fragment_retries': 20,
-    }
-    if _CAN_IMPERSONATE:
-        opts['impersonate'] = 'chrome'
-    return opts
-
-
 class DownloadEngine:
     """
-    yt-dlp wrapper with browser headers, cancellation, and temp-file cleanup.
+    yt-dlp wrapper with cancellation and temp-file cleanup.
     Thread-safe: cancel_download() can be called from any thread.
     """
 
@@ -94,7 +41,10 @@ class DownloadEngine:
     # ──────────────────────────────────────────────────────────
 
     def cancel_download(self):
-        """Signal the running download to stop. Safe to call from UI thread."""
+        """
+        Signal the running download to stop and delete all partial files.
+        Safe to call from the UI thread.
+        """
         self._cancel_event.set()
 
     def reset_cancel(self):
@@ -109,10 +59,23 @@ class DownloadEngine:
     # ──────────────────────────────────────────────────────────
 
     def cleanup_partial_files(self):
-        """Delete all yt-dlp temporary / partial files in download_path."""
+        """
+        Delete all yt-dlp temporary / partial files in download_path.
+        Covers:
+          - *.part              (incomplete download)
+          - *.ytdl              (yt-dlp metadata)
+          - *.part-Frag*        (fragment files from concurrent download)
+          - Frag*               (bare fragment files)
+          - *.f*.mp4, *.f*.webm (video/audio streams before merge)
+        """
         patterns = [
-            "*.part", "*.ytdl", "*.part-Frag*", "Frag*",
-            "*.f[0-9]*.mp4", "*.f[0-9]*.webm", "*.f[0-9]*.m4a",
+            "*.part",
+            "*.ytdl",
+            "*.part-Frag*",
+            "Frag*",
+            "*.f[0-9]*.mp4",
+            "*.f[0-9]*.webm",
+            "*.f[0-9]*.m4a",
         ]
         deleted = 0
         for pattern in patterns:
@@ -129,55 +92,44 @@ class DownloadEngine:
     # ──────────────────────────────────────────────────────────
 
     def analyze_video(self, url: str) -> dict:
-        """Extract video metadata. Falls back gracefully on 401."""
-        opts = _get_base_opts()
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                return ydl.extract_info(url, download=False)
-        except Exception as e:
-            err = str(e)
-            # Fallback: try with browser cookies
-            if '401' in err or 'Unauthorized' in err:
-                fallback = _get_base_opts()
-                fallback.pop('impersonate', None)
-                fallback['cookiesfrombrowser'] = ('chrome',)
-                try:
-                    with yt_dlp.YoutubeDL(fallback) as ydl:
-                        return ydl.extract_info(url, download=False)
-                except Exception:
-                    pass
-            raise
+        """Extracts video information using yt-dlp (no download)."""
+        ydl_opts = {'quiet': True, 'no_warnings': True}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            return ydl.extract_info(url, download=False)
 
     def get_ydl_opts(self, quality: str, progress_hook) -> dict:
-        """Configure yt-dlp download options with browser bypass."""
+        """Configures yt-dlp options based on selected quality and hook."""
         q_map = {
             "Best Available": "bestvideo+bestaudio/best",
             "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
             "720p":  "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
             "480p":  "bestvideo[height<=480]+bestaudio/best[height<=480]/best",
         }
-        opts = _get_base_opts()
-        opts.update({
-            'format': q_map.get(quality, "best"),
+        fmt = q_map.get(quality, "best")
+
+        return {
+            'format': fmt,
             'outtmpl': os.path.join(self.download_path, '%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook],
             'ffmpeg_location': get_ffmpeg_path(),
             'concurrent_fragment_downloads': 16,
-            'merge_output_format': 'mp4',
-        })
-        return opts
+            'retries': 20,
+            'fragment_retries': 20,
+            'quiet': True,
+            'no_warnings': True,
+        }
 
     def start_download(self, url: str, quality: str, progress_hook):
         """
-        Download a video.
-        Raises DownloadCancelled if cancel_download() was called.
-        Cleans up partial files on cancellation or error.
+        Download a video. Raises DownloadCancelled if cancel_download() is called.
+        Automatically cleans up partial files on cancellation.
         """
         if not url:
             raise ValueError("URL is empty or None")
 
         self.reset_cancel()
 
+        # Wrap the caller's hook to inject the cancel check
         def cancellable_hook(d):
             if self._cancel_event.is_set():
                 raise DownloadCancelled("Download cancelled by user")
@@ -191,6 +143,7 @@ class DownloadEngine:
             self.cleanup_partial_files()
             raise
         except Exception:
+            # On any error also clean up partials
             self.cleanup_partial_files()
             raise
 
