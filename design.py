@@ -59,19 +59,17 @@ COLORS = {
 # Shorthand access
 C = COLORS
 
-# ============================================================
-# FONT SETTINGS
-# ============================================================
-
-FONT_HEADLINE = "Manrope"
-FONT_BODY = "Inter"
-FONT_MONO = "Consolas"
+# Manrope and Inter are bundled or downloaded as Google Fonts, 
+# but we add OS-native fallbacks just in case.
+FONT_HEADLINE = "'Manrope', 'Inter', 'Segoe UI', 'San Francisco', 'Helvetica Neue', 'Arial', sans-serif"
+FONT_BODY = "'Inter', 'Segoe UI', 'San Francisco', 'Helvetica Neue', 'Arial', sans-serif"
+FONT_MONO = "'Consolas', 'Menlo', 'Monaco', 'DejaVu Sans Mono', 'Courier New', monospace"
 
 # ============================================================
 # DIMENSION TOKENS
 # ============================================================
 
-SIDEBAR_WIDTH = 240
+NAVBAR_HEIGHT = 72
 BORDER_RADIUS_CARD = 20
 BORDER_RADIUS_BUTTON = 12
 BORDER_RADIUS_INPUT = 10
@@ -86,7 +84,7 @@ def get_main_window_qss():
         QWidget {{
             background-color: {C['surface']};
             color: {C['on_surface']};
-            font-family: '{FONT_BODY}', 'Segoe UI', Arial, sans-serif;
+            font-family: {FONT_BODY};
             font-size: 13px;
         }}
         QLineEdit {{
@@ -95,7 +93,7 @@ def get_main_window_qss():
             border-radius: {BORDER_RADIUS_INPUT}px;
             padding: 10px 14px;
             color: {C['on_surface']};
-            font-family: '{FONT_MONO}', monospace;
+            font-family: {FONT_MONO};
             font-size: 13px;
         }}
         QLineEdit:focus {{
@@ -109,7 +107,7 @@ def get_main_window_qss():
             color: {C['on_surface']};
             font-weight: bold;
             font-size: 12px;
-            font-family: '{FONT_HEADLINE}', sans-serif;
+            font-family: {FONT_HEADLINE};
         }}
         QPushButton:hover {{
             background-color: {C['surface_container_highest']};
@@ -185,18 +183,18 @@ def get_main_window_qss():
     """
 
 
-def get_sidebar_qss():
-    """Stylesheet for the sidebar navigation panel."""
+def get_navbar_qss():
+    """Stylesheet for the top navigation bar."""
     return f"""
-        QFrame#Sidebar {{
+        QFrame#Navbar {{
             background-color: {C['surface']};
-            border-right: 2px solid {C['outline_variant']}30;
+            border-bottom: 2px solid {C['outline_variant']}30;
         }}
     """
 
 
-def get_sidebar_button_qss(active=False):
-    """Stylesheet for a sidebar navigation button."""
+def get_navbar_button_qss(active=False):
+    """Stylesheet for a navigation button (Navbar)."""
     if active:
         return f"""
             QPushButton {{
@@ -204,11 +202,11 @@ def get_sidebar_button_qss(active=False):
                 color: {C['on_primary']};
                 border: none;
                 border-radius: 12px;
-                padding: 12px 16px;
+                padding: 10px 24px;
                 font-weight: 800;
                 font-size: 13px;
-                font-family: '{FONT_HEADLINE}', sans-serif;
-                text-align: left;
+                font-family: {FONT_HEADLINE};
+                text-align: center;
             }}
         """
     else:
@@ -218,11 +216,11 @@ def get_sidebar_button_qss(active=False):
                 color: {C['on_surface_variant']};
                 border: none;
                 border-radius: 12px;
-                padding: 12px 16px;
+                padding: 10px 24px;
                 font-weight: 500;
                 font-size: 13px;
-                font-family: '{FONT_HEADLINE}', sans-serif;
-                text-align: left;
+                font-family: {FONT_HEADLINE};
+                text-align: center;
             }}
             QPushButton:hover {{
                 background-color: {C['surface_container_high']};
