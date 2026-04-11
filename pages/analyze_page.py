@@ -503,9 +503,26 @@ class AnalyzePage(QWidget):
     def _fetch_and_display(self, vid_id):
         url = self.API_ENDPOINT.format(video_id=vid_id.strip())
         try:
-            res = requests.get(url, timeout=10)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Referer": "https://www.dailymotion.com/"
+            }
+            res = requests.get(url, headers=headers, verify=False, timeout=10)
+            if res.status_code == 404:
+                QMessageBox.warning(
+                    self, "Video Unavailable",
+                    f"Video '{vid_id}' không tồn tại hoặc đã bị xóa."
+                )
+                return
             if res.status_code == 200:
                 data = res.json()
+                if data.get('error'):
+                    QMessageBox.warning(
+                        self, "Video Unavailable",
+                        f"Video '{vid_id}' không khả dụng.\n"
+                        f"Lý do: {data.get('message', 'Không rõ')}"
+                    )
+                    return
 
                 # Sync total views with daily/hourly (API lag fix)
                 v_total = int(data.get('views_total') or 0)
@@ -521,5 +538,14 @@ class AnalyzePage(QWidget):
                 col = self.card_count % 2
                 self.grid_layout.addWidget(card, row, col)
                 self.card_count += 1
-        except Exception:
-            pass
+            else:
+                QMessageBox.warning(
+                    self, "Error",
+                    f"Không thể lấy thông tin video '{vid_id}'.\n"
+                    f"HTTP {res.status_code}"
+                )
+        except Exception as e:
+            QMessageBox.warning(
+                self, "Error",
+                f"Lỗi khi phân tích video '{vid_id}':\n{str(e)[:200]}"
+            )
