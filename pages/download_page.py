@@ -464,7 +464,14 @@ class DownloadPage(QWidget):
     def _on_analysis_error(self, msg):
         self.analyze_btn.setEnabled(True)
         self.analyze_btn.setText("ANALYZE")
-        QMessageBox.warning(self, "Analysis Error", f"Could not analyze video:\n{msg}")
+        if any(kw in msg.lower() for kw in ['404', 'not found', 'deleted', 'unavailable', 'private', 'removed']):
+            QMessageBox.warning(
+                self, "Video Unavailable",
+                "Video không tồn tại hoặc đã bị xóa.\n\n"
+                "Vui lòng kiểm tra lại URL."
+            )
+        else:
+            QMessageBox.warning(self, "Analysis Error", f"Không thể phân tích video:\n{msg}")
 
     def _load_thumb(self, url):
         try:
