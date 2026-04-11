@@ -8,8 +8,14 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from gui import TrackerApp
 
+from PyQt5.QtCore import Qt
+
 def main():
     try:
+        # Enable High DPI scaling
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+        
         app = QApplication(sys.argv)
         app.setStyle("Fusion")
         
