@@ -261,6 +261,11 @@ class DailymotionTracker:
             "quiet": True,
             "extract_flat": True,
             "force_generic_extractor": True,
+            "nocheckcertificate": True,
+            "legacyserverconnect": True,
+            "force_ipv4": True,
+            "user_agent": USER_AGENT,
+            "referer": "https://www.dailymotion.com/"
         }
         results = []
 
@@ -270,33 +275,64 @@ class DailymotionTracker:
                 if not info:
                     return []
 
+                # API Fields to fetch for parity with Analyze page
+                api_fields = (
+                    "thumbnail_480_url,thumbnail_720_url,owner,channel,"
+                    "title,views_total,views_last_day,views_last_hour,"
+                    "updated_time,url,geoblocking,duration"
+                )
+                api_url_tmpl = "https://api.dailymotion.com/video/{video_id}?fields=" + api_fields
+                headers = {
+                    "User-Agent": USER_AGENT,
+                    "Referer": "https://www.dailymotion.com/"
+                }
+
                 for entry in (info.get("entries") or [])[:max_items]:
                     if not entry:
                         continue
                     vid = entry.get("id")
                     try:
-                        v_url = f"https://www.dailymotion.com/video/{vid}"
-                        full = ydl.extract_info(v_url, download=False)
-                        dur = full.get("duration", 0)
-                        mins, secs = divmod(dur, 60)
-                        results.append({
-                            "id": vid,
-                            "url": v_url,
-                            "title": full.get("title", entry.get("title", "Unknown")),
-                            "description": full.get("description", ""),
-                            "view_count": full.get("view_count", 0),
-                            "duration_string": f"{int(mins):02d}:{int(secs):02d}",
-                            "thumbnail": full.get("thumbnail", ""),
-                        })
+                        # Fetch full details via API (same as Analyze page)
+                        res = requests.get(
+                            api_url_tmpl.format(video_id=vid),
+                            headers=headers, verify=False, timeout=8
+                        )
+                        if res.status_code == 200:
+                            data = res.json()
+                            # Sync total views (API lag fix)
+                            v_total = int(data.get('views_total') or 0)
+                            v_day = int(data.get('views_last_day') or 0)
+                            v_hour = int(data.get('views_last_hour') or 0)
+                            data['views_total'] = max(v_total, v_day, v_hour)
+                            
+                            # Add duration_string
+                            dur = data.get("duration", 0)
+                            mm, ss = divmod(dur, 60)
+                            data["duration_string"] = f"{int(mm):02d}:{int(ss):02d}"
+                            # Add thumbnail for card logic
+                            data["thumbnail"] = data.get('thumbnail_720_url') or data.get('thumbnail_480_url') or data.get('thumbnail', '')
+                            
+                            results.append(data)
+                        else:
+                            # Fallback to basic yt-dlp info if API fails
+                            v_url = f"https://www.dailymotion.com/video/{vid}"
+                            full = ydl.extract_info(v_url, download=False)
+                            dur = full.get("duration", 0)
+                            mm, ss = divmod(dur, 60)
+                            results.append({
+                                "id": vid,
+                                "url": v_url,
+                                "title": full.get("title", entry.get("title", "Unknown")),
+                                "view_count": full.get("view_count", 0),
+                                "duration_string": f"{int(mm):02d}:{int(ss):02d}",
+                                "thumbnail": full.get("thumbnail", ""),
+                            })
                     except Exception:
                         results.append({
                             "id": vid,
                             "url": f"https://www.dailymotion.com/video/{vid}",
                             "title": entry.get("title", "Video"),
-                            "description": "",
-                            "view_count": 0,
                             "duration_string": "00:00",
-                            "thumbnail": "",
                         })
             except Exception:
                 pass
@@ -311,11 +347,16 @@ class DailymotionTracker:
 
         ydl_opts = {
             "format": "bestvideo[height<=1080]+bestaudio/best",
-            "outtmpl": os.path.join(self.download_path, "%(id)s.%(ext)s"),
+            "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
             "merge_output_format": "mp4",
             "quiet": True,
             "no_warnings": True,
             "concurrent_fragment_downloads": 16,
+            "nocheckcertificate": True,
+            "legacyserverconnect": True,
+            "force_ipv4": True,
+            "user_agent": USER_AGENT,
+            "referer": "https://www.dailymotion.com/"
         }
 
         if progress_callback:
