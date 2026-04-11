@@ -12,7 +12,7 @@ Dependencies: PyQt5, design.py, widgets/sidebar.py, pages/*
 Entry point: main.py
 """
 
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QStackedWidget
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
@@ -49,16 +49,16 @@ class TrackerApp(QMainWindow):
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        root = QHBoxLayout(central)
+        root = QVBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Sidebar ──
+        # ── Navigation Bar (Top) ──
         self.sidebar = Sidebar()
         self.sidebar.page_changed.connect(self._switch_page)
         root.addWidget(self.sidebar)
 
-        # ── Stacked pages ──
+        # ── Stacked pages (Bottom) ──
         self.stack = QStackedWidget()
 
         self.analyze_page = AnalyzePage()
