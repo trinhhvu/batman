@@ -36,4 +36,33 @@ python3 -m PyInstaller --noconfirm --onefile --windowed \
     --hidden-import widgets.sidebar \
     "$MAIN"
 
-echo "[BUILD COMPLETE] → dist/TRACK Professional.app"
+echo "[BUILD COMPLETE] → dist/$NAME.app"
+
+# ── Create DMG Installer (Requires: brew install create-dmg) ──
+echo "[PACKAGING] Checking for DMG packager..."
+
+if command -v create-dmg &> /dev/null; then
+    echo "[PACKAGING] Creating DMG Installer..."
+    # Ensure dist folder exists
+    cd ../../dist
+    
+    # Remove existing DMG if it exists
+    rm -f "Setup_BATMAN_v3.dmg"
+    
+    create-dmg \
+      --volname "BATMAN V3 Installer" \
+      --window-pos 200 120 \
+      --window-size 600 400 \
+      --icon-size 100 \
+      --icon "$NAME.app" 150 190 \
+      --hide-extension "$NAME.app" \
+      --app-drop-link 450 190 \
+      "Setup_BATMAN_v3.dmg" \
+      "$NAME.app"
+      
+    echo "[SUCCESS] DMG Installer created at: dist/Setup_BATMAN_v3.dmg"
+else
+    echo "[WARNING] 'create-dmg' not found! Skipping DMG creation."
+    echo "To automatically generate a DMG installer, install it via: brew install create-dmg"
+    echo "Then re-run this script."
+fi
