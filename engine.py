@@ -93,7 +93,15 @@ class DownloadEngine:
 
     def analyze_video(self, url: str) -> dict:
         """Extracts video information using yt-dlp (no download)."""
-        ydl_opts = {'quiet': True, 'no_warnings': True}
+        ydl_opts = {
+            'quiet': True, 
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            'legacyserverconnect': True,
+            'force_ipv4': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.dailymotion.com/'
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             return ydl.extract_info(url, download=False)
 
@@ -117,6 +125,11 @@ class DownloadEngine:
             'fragment_retries': 20,
             'quiet': True,
             'no_warnings': True,
+            'nocheckcertificate': True,
+            'legacyserverconnect': True,
+            'force_ipv4': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.dailymotion.com/'
         }
 
     def start_download(self, url: str, quality: str, progress_hook):
