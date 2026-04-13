@@ -439,7 +439,7 @@ class ScanDownloadWorker(QRunnable):
         self.video_data = video_data
         self.signals = signals
         self.cancel_event = cancel_event
-        self.vid = video_data["id"]
+        self.vid = video_data.get("id", "")
 
     @pyqtSlot()
     def run(self):
@@ -655,9 +655,11 @@ class ScannerPage(QWidget):
 
         card_idx = 0
         for data in results:
+            vid = data.get("id", str(card_idx))
+            if "id" not in data:
+                data["id"] = vid
             card = ScannerVideoCard(data)
             card.download_single.connect(self._download_single_video)
-            vid = data.get("id", str(card_idx))
             self.video_widgets[vid] = card
             row = card_idx // 2
             col = card_idx % 2

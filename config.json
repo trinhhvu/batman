@@ -1,7 +1,7 @@
 {
     "monitored_channels": [],
     "check_interval_minutes": 30,
-    "download_folder": "C:/Users/trinh/Downloads/DAILYMOTION/114/114 new",
+    "download_folder": "C:/Users/trinh/Downloads/DAILYMOTION/134",
     "max_concurrent_syncs": 1,
     "api_key": "",
     "api_secret": "",

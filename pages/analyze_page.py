@@ -20,10 +20,12 @@ import re
 import datetime
 
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QScrollArea, QFrame, QGridLayout, QFileDialog, QApplication
+    QScrollArea, QFrame, QGridLayout, QFileDialog, QApplication, QMessageBox
 )
 from PyQt5.QtGui import QPixmap, QFont, QCursor
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
@@ -507,7 +509,7 @@ class AnalyzePage(QWidget):
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
                 "Referer": "https://www.dailymotion.com/"
             }
-            res = requests.get(url, headers=headers, verify=False, timeout=10)
+            res = requests.get(url, headers=headers, verify=False, timeout=20)
             if res.status_code == 404:
                 QMessageBox.warning(
                     self, "Video Unavailable",
