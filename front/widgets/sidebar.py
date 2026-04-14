@@ -1,23 +1,18 @@
 """
 sidebar.py — Sidebar Navigation Widget (TRACK)
 ================================================
-Provides the left-side navigation panel for the unified TRACK app.
-Contains navigation buttons: Analyze, Download, Scanner.
-
-Emits signals when a page is selected so the main app can switch views.
-Imports design tokens from design.py.
-
-Dependencies: PyQt5, design.py
-Used by: gui.py
+PURE UI — no business logic, no API calls.
 """
 
-from PyQt5.QtWidgets import QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QMessageBox
+from PyQt5.QtWidgets import (
+    QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QPushButton, QMessageBox
+)
 from PyQt5.QtCore import pyqtSignal, Qt, pyqtSlot, QMetaObject, Q_ARG
 from PyQt5.QtGui import QFont
-import requests
 import threading
 
-from design import (
+from front.design import (
     COLORS as C, FONT_HEADLINE, NAVBAR_HEIGHT,
     get_navbar_qss, get_navbar_button_qss
 )
@@ -35,7 +30,6 @@ class Sidebar(QFrame):
         self.setStyleSheet(get_navbar_qss())
         self.current_page = "analyze"
         self._buttons = {}
-
         self._build_ui()
 
     def _build_ui(self):
@@ -75,6 +69,7 @@ class Sidebar(QFrame):
             ("analyze",  "📊  Analyze"),
             ("download", "⬇  Download"),
             ("scanner",  "📡  Scanner"),
+            ("research", "🔍  Research"),
         ]
 
         for page_id, label in nav_items:
@@ -84,9 +79,8 @@ class Sidebar(QFrame):
             btn.clicked.connect(lambda checked, pid=page_id: self._on_nav_click(pid))
             self._buttons[page_id] = btn
             nav_layout.addWidget(btn)
-        
-        layout.addWidget(nav_container)
 
+        layout.addWidget(nav_container)
         layout.addStretch()
 
         # ── Right Section (IP + Version) ──
@@ -95,7 +89,6 @@ class Sidebar(QFrame):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(20)
 
-        # IP Check Button
         self.ip_btn = QPushButton("📍 IP Info")
         self.ip_btn.setCursor(Qt.PointingHandCursor)
         self.ip_btn.setStyleSheet(f"""
@@ -114,14 +107,11 @@ class Sidebar(QFrame):
         self.ip_btn.clicked.connect(self._on_ip_check_click)
         right_layout.addWidget(self.ip_btn)
 
-        # Version Info
         version_label = QLabel("v3.0 Unified")
         version_label.setStyleSheet(f"color: {C['outline']}; font-size: 10px; background: transparent; border: none;")
         right_layout.addWidget(version_label)
-        
-        layout.addWidget(right_container)
 
-        # Apply initial active state
+        layout.addWidget(right_container)
         self._refresh_styles()
 
     def _on_nav_click(self, page_id):
@@ -136,26 +126,22 @@ class Sidebar(QFrame):
             btn.setStyleSheet(get_navbar_button_qss(active=(pid == self.current_page)))
 
     def _on_ip_check_click(self):
-        """Fetch public IP and country in a background thread."""
         self.ip_btn.setText("Checking...")
         self.ip_btn.setEnabled(False)
 
         def _fetch():
             try:
-                # Use ipapi.co for detailed info
+                import requests
                 response = requests.get("https://ipapi.co/json/", timeout=5)
                 data = response.json()
                 ip = data.get("ip", "Unknown")
                 country = data.get("country_name", "Unknown")
                 city = data.get("city", "")
-                
                 info = f"🌐 IP: {ip}\n📍 Location: {city}, {country}" if city else f"🌐 IP: {ip}\n📍 Location: {country}"
-                
-                # Update UI from main thread
-                QMetaObject.invokeMethod(self, "_show_ip_result", Qt.QueuedConnection, 
+                QMetaObject.invokeMethod(self, "_show_ip_result", Qt.QueuedConnection,
                                         Q_ARG(str, "Network Info"), Q_ARG(str, info))
             except Exception as e:
-                QMetaObject.invokeMethod(self, "_show_ip_result", Qt.QueuedConnection, 
+                QMetaObject.invokeMethod(self, "_show_ip_result", Qt.QueuedConnection,
                                         Q_ARG(str, "Error"), Q_ARG(str, f"Could not fetch IP info: {e}"))
             finally:
                 QMetaObject.invokeMethod(self, "_reset_ip_button", Qt.QueuedConnection)

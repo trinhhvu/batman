@@ -31,3 +31,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# App Configs & History
+config.json
+history.json
+ffmpeg.exe
+
+# Phantom folders
+C:/

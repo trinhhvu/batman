@@ -100,26 +100,31 @@ def get_main_window_qss():
             border: 2px solid {C['primary']};
         }}
         QPushButton {{
-            background-color: {C['surface_container_high']};
-            border: 2px solid {C['outline_variant']}20;
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24243a, stop:1 #1e1e32);
+            border: 1px solid #474658;
             border-radius: {BORDER_RADIUS_BUTTON}px;
             padding: 10px 20px;
             color: {C['on_surface']};
             font-weight: bold;
             font-size: 12px;
             font-family: {FONT_HEADLINE};
+            outline: none;
         }}
         QPushButton:hover {{
-            background-color: {C['surface_container_highest']};
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2a2a42, stop:1 #24243a);
+            border: 1px solid #757387;
+        }}
+        QPushButton:pressed {{
+            background-color: #1a1a2e;
         }}
         QPushButton#ActionButton {{
-            background-color: {C['primary']};
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8cb7fe, stop:1 #7faaef);
             color: {C['on_primary']};
-            border: none;
+            border: 1px solid #8cb7fe;
             font-weight: 800;
         }}
         QPushButton#ActionButton:hover {{
-            background-color: {C['primary_dim']};
+            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #7faaef, stop:1 #77a2e6);
         }}
         QPushButton#DangerButton {{
             background-color: {C['error']};
@@ -174,11 +179,22 @@ def get_main_window_qss():
             width: 30px;
         }}
         QComboBox QAbstractItemView {{
-            background-color: {C['surface_container_high']};
-            color: {C['on_surface']};
-            border: 1px solid {C['outline_variant']};
-            selection-background-color: {C['primary']};
-            selection-color: {C['on_primary']};
+            background-color: #1e1e32;
+            color: #e6e3f9;
+            border: 1px solid #474658;
+            border-radius: 8px;
+            selection-background-color: #2a2a42;
+            selection-color: #8cb7fe;
+            outline: none;
+            padding: 4px;
+        }}
+        QComboBox QAbstractItemView::item {{
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 2px 0;
+        }}
+        QComboBox QAbstractItemView::item:hover {{
+            background-color: #24243a;
         }}
     """
 
@@ -198,7 +214,7 @@ def get_navbar_button_qss(active=False):
     if active:
         return f"""
             QPushButton {{
-                background-color: {C['primary']};
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #8cb7fe, stop:1 #7faaef);
                 color: {C['on_primary']};
                 border: none;
                 border-radius: 12px;
@@ -206,7 +222,9 @@ def get_navbar_button_qss(active=False):
                 font-weight: 800;
                 font-size: 13px;
                 font-family: {FONT_HEADLINE};
-                text-align: center;
+                text-align: left;
+                padding-left: 20px;
+                outline: none;
             }}
         """
     else:
@@ -220,10 +238,12 @@ def get_navbar_button_qss(active=False):
                 font-weight: 500;
                 font-size: 13px;
                 font-family: {FONT_HEADLINE};
-                text-align: center;
+                text-align: left;
+                padding-left: 20px;
+                outline: none;
             }}
             QPushButton:hover {{
-                background-color: {C['surface_container_high']};
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24243a, stop:1 #1e1e32);
                 color: {C['on_surface']};
             }}
         """

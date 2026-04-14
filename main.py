@@ -2,11 +2,12 @@
 main.py — Entry Point for TRACK Sync App
 ========================================
 Runs the PyQT5 application.
+Architecture: front/ (UI) + back/ (logic).
 """
 
 import sys
 from PyQt5.QtWidgets import QApplication
-from gui import TrackerApp
+from front.gui import TrackerApp
 
 from PyQt5.QtCore import Qt
 
