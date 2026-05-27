@@ -1,12 +1,7 @@
-"""
-main.py — Entry Point for TRACK Sync App
-========================================
-Runs the PyQT5 application.
-Architecture: front/ (UI) + back/ (logic).
-"""
-
 import sys
+import os
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QPalette, QColor
 from front.gui import TrackerApp
 
 from PyQt5.QtCore import Qt
@@ -18,7 +13,8 @@ def main():
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
         
         app = QApplication(sys.argv)
-        app.setStyle("Fusion")
+        
+        # We will manage the palette inside TrackerApp to support dynamic theme switching
         
         window = TrackerApp()
         window.show()

@@ -1,7 +1,6 @@
 """
-front/pages/analyze_page.py — Video Analytics Page (PURE UI)
-=============================================================
-Displays bento-style analytics cards. ALL API calls delegated to back/.
+front/pages/analyze_page.py — Video Analytics Page (AuraOS Redesign)
+====================================================================
 """
 
 import os
@@ -16,21 +15,19 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QFont, QCursor, QColor
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
-from front.design import COLORS as C, FONT_HEADLINE, FONT_BODY, BORDER_RADIUS_CARD
+from front.design import COLORS as C, FONT_HEADLINE, FONT_BODY, BORDER_RADIUS_CARD, action_btn_style, danger_btn_style, get_main_window_qss
+from front.widgets.notification import show_notification
 from back.api_client import fetch_video_details, fetch_thumbnail_data
 
 
-# ──────────────────────────────────────────────────────────────
-# Animated Copy Button
-# ──────────────────────────────────────────────────────────────
 class CopyButton(QPushButton):
-    """A polished copy button with icon + animated feedback."""
+    """A polished copy button with AuraOS styling."""
 
     def __init__(self, text_to_copy: str, label: str = "COPY", parent=None):
         super().__init__(parent)
         self._text_to_copy = text_to_copy
         self._default_label = label
-        self.setText(f"📋 {label}")
+        self.setText(label)
         self.setFixedHeight(28)
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.setStyleSheet(self._default_qss())
@@ -40,53 +37,46 @@ class CopyButton(QPushButton):
         return f"""
             QPushButton {{
                 background-color: {C['surface_container_high']};
-                color: {C['primary']};
-                border: 1px solid {C['primary']}40;
-                border-radius: 6px;
-                padding: 4px 10px;
-                font-size: 10px;
-                font-weight: 700;
-                font-family: '{FONT_HEADLINE}', sans-serif;
-                letter-spacing: 0.5px;
+                color: {C['on_surface']};
+                border: 1px solid {C['outline_variant']};
+                border-radius: 8px;
+                padding: 4px 12px;
+                font-size: 11px;
+                font-weight: 600;
+                font-family: {FONT_BODY};
             }}
             QPushButton:hover {{
-                background-color: {C['primary']}20;
-                border: 1px solid {C['primary']}80;
+                background-color: {C['surface_container_highest']};
             }}
         """
 
     def _success_qss(self):
         return f"""
             QPushButton {{
-                background-color: {C['secondary']}25;
-                color: {C['secondary']};
-                border: 1px solid {C['secondary']}60;
-                border-radius: 6px;
-                padding: 4px 10px;
-                font-size: 10px;
+                background-color: {C['primary']}20;
+                color: {C['primary']};
+                border: 1px solid {C['primary']};
+                border-radius: 8px;
+                padding: 4px 12px;
+                font-size: 11px;
                 font-weight: 700;
-                font-family: '{FONT_HEADLINE}', sans-serif;
-                letter-spacing: 0.5px;
             }}
         """
 
     def _do_copy(self):
-        clipboard = QApplication.clipboard()
-        clipboard.setText(self._text_to_copy)
-        self.setText("✅ COPIED!")
+        QApplication.clipboard().setText(self._text_to_copy)
+        self.setText("COPIED")
         self.setStyleSheet(self._success_qss())
+        show_notification(self.window(), "COPIED", f"{self._default_label} copied to clipboard")
         QTimer.singleShot(1500, self._reset)
 
     def _reset(self):
-        self.setText(f"📋 {self._default_label}")
+        self.setText(self._default_label)
         self.setStyleSheet(self._default_qss())
 
 
-# ──────────────────────────────────────────────────────────────
-# VideoCard — Bento-style analytics card
-# ──────────────────────────────────────────────────────────────
 class VideoCard(QFrame):
-    """Renders a single video's analytics as a premium bento card."""
+    """Bento-style analytics card following AuraOS."""
 
     send_to_download = pyqtSignal(str)
 
@@ -98,364 +88,229 @@ class VideoCard(QFrame):
 
     def _build_ui(self):
         self.setObjectName("VideoCard")
-        self.setFixedWidth(480)
-        self.setStyleSheet(f"""
-            QFrame#VideoCard {{
-                background-color: #1a1a2a;
-                border: 1px solid {C['outline_variant']}30;
-                border-radius: {BORDER_RADIUS_CARD}px;
-            }}
-            QFrame#VideoCard:hover {{
-                background-color: #1e1e2e;
-                border: 1px solid {C['primary']}50;
-            }}
-        """)
+        self.setFixedWidth(460)
+        # Style is now handled globally in design.py
 
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(25)
-        shadow.setColor(QColor(0, 0, 0, 180))
-        shadow.setOffset(0, 8)
-        self.setGraphicsEffect(shadow)
+        # Fluidic shadow
+        # shadow = QGraphicsDropShadowEffect(self)
+        # shadow.setBlurRadius(30)
+        # shadow.setColor(QColor(0, 0, 0, 20))
+        # shadow.setOffset(0, 10)
+        # self.setGraphicsEffect(shadow)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
         # ── Thumbnail ──
-        thumb_container_wrapper = QFrame()
-        thumb_container_wrapper.setFixedHeight(270)
-        thumb_container_wrapper.setStyleSheet(
-            f"background-color: #000; "
-            f"border-top-left-radius: {BORDER_RADIUS_CARD}px; "
-            f"border-top-right-radius: {BORDER_RADIUS_CARD}px;"
-        )
-
-        thumb_label = QLabel()
+        thumb_container = QFrame()
+        thumb_container.setObjectName("CardThumb")
+        thumb_container.setFixedHeight(260)
+        
+        thumb_label = QLabel(thumb_container)
+        thumb_label.setGeometry(0, 0, 460, 260)
         thumb_label.setAlignment(Qt.AlignCenter)
-
-        thumb_url = self.data.get('thumbnail_720_url') or self.data.get('thumbnail_480_url') or self.data.get('thumbnail', '')
+        
+        thumb_url = self.data.get('thumbnail_720_url') or self.data.get('thumbnail', '')
         if thumb_url:
             try:
                 img_data = fetch_thumbnail_data(thumb_url)
                 pixmap = QPixmap()
                 pixmap.loadFromData(img_data)
-                pixmap = pixmap.scaled(480, 270, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                pixmap = pixmap.scaled(460, 260, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
                 thumb_label.setPixmap(pixmap)
-            except Exception:
-                thumb_label.setText("")
+            except: pass
 
-        thumb_label.setParent(thumb_container_wrapper)
-        thumb_label.setGeometry(0, 0, 480, 270)
+        dl_btn = QPushButton("GET", thumb_container)
+        dl_btn.setObjectName("ActionButton")
+        dl_btn.setFixedSize(56, 32)
+        dl_btn.setCursor(Qt.PointingHandCursor)
+        dl_btn.move(460 - 72, 12)
+        dl_btn.clicked.connect(lambda: self.send_to_download.emit(self.data.get('url', '')))
 
-        # Download overlay
-        dl_overlay = QPushButton("⬇")
-        dl_overlay.setFixedSize(36, 36)
-        dl_overlay.setCursor(QCursor(Qt.PointingHandCursor))
-        dl_overlay.setToolTip("Send to Download queue")
-        dl_overlay.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {C['primary']};
-                color: {C['on_primary']};
-                border: none;
-                border-radius: 18px;
-                font-size: 16px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: {C['primary_dim']};
-            }}
-        """)
-        video_url = self.data.get('url', '')
-        dl_overlay.clicked.connect(lambda: self.send_to_download.emit(video_url))
-        dl_overlay.setParent(thumb_container_wrapper)
-        dl_overlay.move(480 - 46, 10)
-
-        # ── Body ──
+        # ── Content Body ──
         body = QWidget()
         body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(20, 20, 20, 20)
-        body_layout.setSpacing(15)
+        body_layout.setContentsMargins(24, 24, 24, 24)
+        body_layout.setSpacing(16)
 
-        # Title + Copy
+        # Title
         title_row = QHBoxLayout()
-        title_row.setSpacing(10)
         title_str = (self.data.get('title') or 'N/A').upper()
         title_label = QLabel(title_str)
         title_label.setWordWrap(True)
-        title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        title_label.setStyleSheet(
-            f"color: {C['on_surface']}; font-size: 15px; font-weight: 800; "
-            f"font-family: '{FONT_HEADLINE}';"
-        )
-        copy_title_btn = CopyButton(title_str, "TITLE")
-        copy_title_btn.setFixedWidth(80)
+        title_label.setFont(QFont(FONT_HEADLINE, 11, QFont.Bold))
+        # Color handled globally
         title_row.addWidget(title_label, 1)
-        title_row.addWidget(copy_title_btn, 0)
+        
+        copy_title = CopyButton(title_str, "TITLE")
+        title_row.addWidget(copy_title)
+        body_layout.addLayout(title_row)
 
-        # Channel info
-        channel_name = self.data.get('channel') or self.data.get('uploader') or 'N/A'
-        owner_name = self.data.get('owner') or self.data.get('uploader_id') or 'N/A'
-        identity = QLabel(
-            f"<span style='color: {C['primary']}; font-weight: bold;'>{channel_name}</span>"
-            f" <span style='color: {C['outline_variant']};'>•</span> "
-            f"<span style='color: {C['on_surface']};'>{owner_name}</span>"
-        )
-        identity.setStyleSheet("font-size: 12px;")
-        identity.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        # Channel
+        channel = QLabel(f"<span style='color: {C['primary']}; font-weight: 700;'>{self.data.get('channel', 'N/A')}</span> • {self.data.get('id', 'N/A')}")
+        body_layout.addWidget(channel)
 
-        title_box = QVBoxLayout()
-        title_box.setSpacing(5)
-        title_box.addLayout(title_row)
-        title_box.addWidget(identity)
-
-        # Stats grid
-        stats_frame = QFrame()
-        stats_frame.setStyleSheet("padding: 5px 0px;")
-        stats_layout = QHBoxLayout(stats_frame)
-        stats_layout.setContentsMargins(0, 5, 0, 5)
-        stats_layout.setSpacing(8)
+        # Stats Grid
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(10)
+        
         v_24h = int(self.data.get('views_last_day') or 0)
         v_1h = int(self.data.get('views_last_hour') or 0)
-        v_total = max(int(self.data.get('views_total') or self.data.get('view_count') or 0), v_24h, v_1h)
-        stats_layout.addWidget(self._stat_box("Total", f"{v_total:,}", C['on_surface']))
-        stats_layout.addWidget(self._stat_box("24h", f"{v_24h:,}", C['secondary']))
-        stats_layout.addWidget(self._stat_box("1h", f"{v_1h:,}", C['primary']))
+        v_total = int(self.data.get('views_total') or self.data.get('view_count') or 0)
+        
+        stats_layout.addWidget(self._stat_box("TOTAL", f"{v_total:,}"))
+        stats_layout.addWidget(self._stat_box("24H", f"{v_24h:,}"))
+        stats_layout.addWidget(self._stat_box("1H", f"{v_1h:,}"))
+        body_layout.addLayout(stats_layout)
 
-        # Geoblock
-        geoblock = str(self.data.get('geoblocking') or 'allow')
-        geo_frame = QFrame()
-        if "deny" in geoblock:
-            geo_frame.setStyleSheet(f"background-color: {C['error']}15; border-radius: 8px;")
-            geo_layout = QVBoxLayout(geo_frame)
-            geo_status = QLabel("STATUS: DENY")
-            geo_status.setStyleSheet(f"color: {C['error']}; font-size: 11px; font-weight: bold;")
-            geo_desc = QLabel("Geoblocking active.")
-            geo_desc.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 10px;")
-            geo_layout.addWidget(geo_status)
-            geo_layout.addWidget(geo_desc)
+        # Geoblock Banner
+        geo = str(self.data.get('geoblocking') or 'allow')
+        geo_banner = QLabel()
+        geo_banner.setObjectName("GeoBanner")
+        geo_banner.setContentsMargins(12, 6, 12, 6)
+        geo_banner.setAlignment(Qt.AlignCenter)
+        if "deny" in geo:
+            geo_banner.setText("GEOBLOCK ACTIVE")
+            geo_banner.setProperty("state", "error")
         else:
-            geo_frame.setStyleSheet(
-                f"background-color: {C['secondary']}25; border-radius: 8px; "
-                f"border: 1px solid {C['secondary']}40;"
-            )
-            geo_layout = QVBoxLayout(geo_frame)
-            geo_status = QLabel("STATUS: NO GEOBLOCK")
-            geo_status.setStyleSheet(
-                f"color: {C['secondary']}; font-size: 11px; font-weight: bold; "
-                f"background: transparent; border: none;"
-            )
-            geo_desc = QLabel("Signal clear. Content is available globally.")
-            geo_desc.setStyleSheet(
-                f"color: {C['on_surface']}; font-size: 10px; "
-                f"background: transparent; border: none;"
-            )
-            geo_layout.addWidget(geo_status)
-            geo_layout.addWidget(geo_desc)
+            geo_banner.setText("CLEAN / NO GEOBLOCK")
+            geo_banner.setProperty("state", "success")
+        body_layout.addWidget(geo_banner)
 
-        # Footer
-        footer = QVBoxLayout()
-        footer.setSpacing(8)
-        updated_time = self._format_time(self.data.get('updated_time') or 0)
-        if updated_time:
-            time_label = QLabel(f"Updated: {updated_time}")
-            time_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 11px;")
-            footer.addWidget(time_label)
-        url_value = video_url or '#'
-        url_row = QHBoxLayout()
-        url_row.setSpacing(6)
-        url_label = QLabel(f"URL: <a href='{url_value}' style='color: {C['primary']}; text-decoration: none;'>{url_value}</a>")
-        url_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 11px;")
-        url_label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
-        url_label.setOpenExternalLinks(True)
-        url_label.setWordWrap(True)
-        url_row.addWidget(url_label, 1)
-        url_copy = CopyButton(url_value, "URL")
-        url_copy.setFixedWidth(72)
-        url_row.addWidget(url_copy)
-        footer.addLayout(url_row)
+        # Footer Actions
+        actions = QHBoxLayout()
+        actions.setSpacing(12)
+        
+        btn_url = QPushButton("URL")
+        btn_url.setCursor(Qt.PointingHandCursor)
+        def _copy_url():
+            QApplication.clipboard().setText(self.data.get('url', ''))
+            show_notification(self.window(), "COPIED", "Video URL copied to clipboard")
+        btn_url.clicked.connect(_copy_url)
+        
+        btn_thumb = QPushButton("IMAGE")
+        btn_thumb.setCursor(Qt.PointingHandCursor)
+        def _copy_thumb():
+            QApplication.clipboard().setText(thumb_url)
+            show_notification(self.window(), "COPIED", "Thumbnail URL copied to clipboard")
+        btn_thumb.clicked.connect(_copy_thumb)
+        
+        actions.addWidget(btn_url, 1)
+        actions.addWidget(btn_thumb, 1)
+        body_layout.addLayout(actions)
 
-        thumb_value = thumb_url or '#'
-        thumb_row = QHBoxLayout()
-        thumb_row.setSpacing(6)
-        thumb_link = QLabel(f"Thumb: <a href='{thumb_value}' style='color: {C['primary']}; text-decoration: none;'>{thumb_value[:60]}...</a>")
-        thumb_link.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 11px;")
-        thumb_link.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
-        thumb_link.setOpenExternalLinks(True)
-        thumb_link.setWordWrap(True)
-        thumb_row.addWidget(thumb_link, 1)
-        thumb_copy = CopyButton(thumb_value, "THUMB")
-        thumb_copy.setFixedWidth(80)
-        thumb_row.addWidget(thumb_copy)
-        footer.addLayout(thumb_row)
-
-        body_layout.addLayout(title_box)
-        body_layout.addWidget(stats_frame)
-        body_layout.addWidget(geo_frame)
-        body_layout.addLayout(footer)
-
-        main_layout.addWidget(thumb_container_wrapper)
+        main_layout.addWidget(thumb_container)
         main_layout.addWidget(body)
 
-    def _stat_box(self, label, value, color):
+    def _stat_box(self, label, value):
         box = QFrame()
-        box.setStyleSheet(f"""
-            QFrame {{
-                background-color: {C['surface_container_highest']}80;
-                border: 1px solid {C['outline_variant']}40;
-                border-radius: 10px;
-                padding: 8px;
-            }}
-        """)
-        layout = QVBoxLayout(box)
-        layout.setContentsMargins(8, 6, 8, 6)
-        layout.setSpacing(2)
-        cap = QLabel(label.upper())
-        cap.setStyleSheet(
-            f"color: {C['on_surface_variant']}; font-size: 9px; font-weight: bold; "
-            f"letter-spacing: 1px; background: transparent; border: none;"
-        )
+        box.setObjectName("StatBox")
+        l = QVBoxLayout(box)
+        l.setContentsMargins(16, 12, 16, 12)
+        l.setSpacing(4)
+        
+        cap = QLabel(label)
+        cap.setObjectName("SectionTitle")
         val = QLabel(value)
-        val.setStyleSheet(
-            f"color: {color}; font-size: 17px; font-weight: 800; "
-            f"font-family: '{FONT_HEADLINE}'; background: transparent; border: none;"
-        )
-        val.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        layout.addWidget(cap)
-        layout.addWidget(val)
+        val.setFont(QFont(FONT_HEADLINE, 14, QFont.Bold))
+        
+        l.addWidget(cap)
+        l.addWidget(val)
         return box
 
-    def _format_time(self, ts):
-        try:
-            return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-        except Exception:
-            return ""
 
-
-# ──────────────────────────────────────────────────────────────
-# Analyze Page
-# ──────────────────────────────────────────────────────────────
 class AnalyzePage(QWidget):
-    """Scan videos → Display bento cards. Logic delegated to back/api_client."""
+    """Video analysis page with AuraOS design."""
 
     request_download = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.video_data_list = []
+        self.setObjectName("AnalyzePage")
         self.card_count = 0
         self._build_ui()
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 20, 30, 20)
-        layout.setSpacing(20)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(32)
 
-        header = QLabel("Real-time Intelligence")
-        header.setFont(QFont(FONT_HEADLINE, 22, QFont.ExtraBold))
-        header.setStyleSheet(f"color: {C['on_surface']};")
-        layout.addWidget(header)
+        # Header
+        header_box = QVBoxLayout()
+        self.title = QLabel("Real-time Intelligence")
+        self.title.setObjectName("PageTitle")
+        header_box.addWidget(self.title)
+        
+        self.subtitle = QLabel("Scan Dailymotion videos. Analyze views, geoblock status, and performance.")
+        self.subtitle.setObjectName("SubtitleLabel")
+        header_box.addWidget(self.subtitle)
+        layout.addLayout(header_box)
 
-        sub = QLabel("Scan Dailymotion videos. Analyze views, geoblock status, and metadata.")
-        sub.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 13px;")
-        layout.addWidget(sub)
-
-        toolbar = QHBoxLayout()
-        toolbar.setSpacing(10)
+        # Toolbar
+        self.toolbar = QFrame()
+        self.toolbar.setObjectName("BentoCard")
+        tool_layout = QHBoxLayout(self.toolbar)
+        tool_layout.setContentsMargins(20, 10, 20, 10)
+        tool_layout.setSpacing(12)
+        
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Enter URL or Video ID...")
-        self.url_input.setFixedWidth(400)
+        self.url_input.setPlaceholderText("Video URL or ID")
+        self.url_input.setMinimumHeight(44)
         self.url_input.returnPressed.connect(self._scan_one)
-        toolbar.addWidget(self.url_input)
-
-        scan_btn = QPushButton("SCAN VIDEO")
+        tool_layout.addWidget(self.url_input, 1)
+        
+        scan_btn = QPushButton("SCAN")
         scan_btn.setObjectName("ActionButton")
-        scan_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        scan_btn.setFixedWidth(130)
+        scan_btn.setFixedSize(120, 44)
+        scan_btn.setCursor(Qt.PointingHandCursor)
         scan_btn.clicked.connect(self._scan_one)
-        toolbar.addWidget(scan_btn)
-
-        batch_btn = QPushButton("IMPORT BATCH")
-        batch_btn.clicked.connect(self._scan_bulk)
-        toolbar.addWidget(batch_btn)
-
-        clear_btn = QPushButton("CLEAR ALL")
-        clear_btn.setObjectName("DangerButton")
-        clear_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        tool_layout.addWidget(scan_btn)
+        
+        clear_btn = QPushButton("CLEAR")
+        clear_btn.setFixedSize(100, 44)
+        clear_btn.setCursor(Qt.PointingHandCursor)
         clear_btn.clicked.connect(self._clear_all)
-        toolbar.addWidget(clear_btn)
-        toolbar.addStretch()
-        layout.addLayout(toolbar)
+        tool_layout.addWidget(clear_btn)
+        layout.addWidget(self.toolbar)
 
+        # Results Grid
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        container = QWidget()
-        container.setStyleSheet(f"background-color: {C['surface']};")
-        wrapper = QHBoxLayout(container)
-        wrapper.setContentsMargins(0, 0, 0, 0)
-        wrapper.addStretch()
+        
         self.grid_widget = QWidget()
         self.grid_layout = QGridLayout(self.grid_widget)
-        self.grid_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
         self.grid_layout.setSpacing(24)
-        wrapper.addWidget(self.grid_widget)
-        wrapper.addStretch()
-        scroll.setWidget(container)
+        self.grid_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        
+        scroll.setWidget(self.grid_widget)
         layout.addWidget(scroll, 1)
 
     def _scan_one(self):
         url = self.url_input.text().strip()
         if url:
-            vid_id = self._extract_id(url)
+            vid_id = url.split('/')[-1] if 'dailymotion.com' in url else url
             self._fetch_and_display(vid_id)
-        self.url_input.clear()
-
-    def _scan_bulk(self):
-        import re as _re
-        path, _ = QFileDialog.getOpenFileName(self, "Select File", "", "Text (*.txt);;HTML (*.html)")
-        if path:
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                ids = _re.findall(r'/video/([a-zA-Z0-9]+)', content)
-                if not ids:
-                    ids = content.splitlines()
-                for vid in set(ids):
-                    if len(vid) > 3:
-                        self._fetch_and_display(vid)
-            except Exception:
-                pass
+            self.url_input.clear()
 
     def _clear_all(self):
         while self.grid_layout.count():
-            child = self.grid_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-        self.video_data_list.clear()
+            item = self.grid_layout.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
         self.card_count = 0
 
-    def _extract_id(self, url):
-        match = re.search(r'/video/([a-zA-Z0-9]+)', url)
-        return match.group(1) if match else url.strip().split('/')[-1]
-
     def _fetch_and_display(self, vid_id):
-        """Fetch video details from backend API client and display."""
         try:
             data = fetch_video_details(vid_id.strip())
-            self.video_data_list.append(data)
             card = VideoCard(data, self)
             card.send_to_download.connect(self.request_download.emit)
             row = self.card_count // 2
             col = self.card_count % 2
             self.grid_layout.addWidget(card, row, col)
             self.card_count += 1
-        except ValueError as e:
-            err_msg = str(e)
-            if '404' in err_msg or 'error' in err_msg.lower():
-                QMessageBox.warning(self, "Video Unavailable",
-                    f"Video '{vid_id}' không tồn tại hoặc đã bị xóa.")
-            else:
-                QMessageBox.warning(self, "Error",
-                    f"Không thể lấy thông tin video '{vid_id}'.\n{err_msg}")
         except Exception as e:
-            QMessageBox.warning(self, "Error",
-                f"Lỗi khi phân tích video '{vid_id}':\n{str(e)[:200]}")
+            QMessageBox.warning(self, "Scan Error", str(e))
+
+    def refresh_theme(self):
+        """No manual refresh needed for standard labels anymore."""
+        pass

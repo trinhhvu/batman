@@ -1,249 +1,234 @@
 """
-design.py — Unified Design System for Batman v2
-================================================
+design.py — Unified Design System for AuraOS / Batman v3
+========================================================
 Centralizes ALL color tokens, font settings, and reusable QSS stylesheets.
-Matches the HTML mockup design system (Material 3 dark theme).
-
-Used by: app.py, sidebar.py, download_page.py, analytics_page.py, video_card.py, queue_item.py
-
-If an AI assistant is continuing this project, this file is the SINGLE SOURCE OF TRUTH
-for all visual styling. Do NOT hardcode colors in other files — import from here.
 """
 
-# ============================================================
-# COLOR TOKENS (from Tailwind config in the HTML mockup)
-# ============================================================
-
-COLORS = {
-    # Surfaces (backgrounds)
-    "surface":                  "#0d0d1c",
-    "surface_container_lowest": "#000000",
-    "surface_container_low":    "#121222",
-    "surface_container":        "#18182a",
-    "surface_container_high":   "#1e1e32",
-    "surface_container_highest":"#24243a",
-    "surface_bright":           "#2a2a42",
-    "surface_variant":          "#24243a",
-
-    # Primary (blue accent)
-    "primary":                  "#8cb7fe",
-    "primary_dim":              "#7faaef",
-    "primary_container":        "#77a2e6",
-    "on_primary":               "#003469",
-    "on_primary_container":     "#002249",
-
-    # Secondary (green success)
-    "secondary":                "#b4f2af",
-    "secondary_dim":            "#a7e4a2",
-    "secondary_container":      "#19511f",
-    "on_secondary":             "#265d29",
-
-    # Error (red)
-    "error":                    "#ff716c",
-    "error_dim":                "#d7383b",
-    "error_container":          "#9f0519",
-
-    # Tertiary (pink)
-    "tertiary":                 "#ffa0b9",
-
-    # Text / On-surface
-    "on_surface":               "#e6e3f9",
-    "on_surface_variant":       "#aba9be",
-    "on_background":            "#e6e3f9",
-
-    # Outlines / Borders
-    "outline":                  "#757387",
-    "outline_variant":          "#474658",
+LIGHT_COLORS = {
+    "surface":                  "#f1f3f5",
+    "surface_dim":              "#e9ecef",
+    "surface_bright":           "#ffffff",
+    "surface_container_lowest": "#ffffff",
+    "surface_container_low":    "#f8f9fa",
+    "surface_container":        "#e9ecef",
+    "surface_container_high":   "#dee2e6",
+    "surface_container_highest":"#ced4da",
+    "primary":                  "#212529",
+    "on_primary":               "#ffffff",
+    "on_surface":               "#212529",
+    "on_surface_variant":       "#495057",
+    "error":                    "#c92a2a",
+    "error_container":          "#fff5f5",
+    "success":                  "#2b8a3e",
+    "outline":                  "#adb5bd",
+    "outline_variant":          "#e9ecef",
+    "notification_bg":          "#ffffff",
+    "notification_text":        "#212529",
 }
 
-# Shorthand access
+DARK_COLORS = {
+    "surface":                  "#0a0a0a",
+    "surface_dim":              "#121212",
+    "surface_bright":           "#161616",
+    "surface_container_lowest": "#0e0e0e",
+    "surface_container_low":    "#1e1e1e",
+    "surface_container":        "#262626",
+    "surface_container_high":   "#333333",
+    "surface_container_highest":"#404040",
+    "primary":                  "#ececeb",
+    "on_primary":               "#121212",
+    "on_surface":               "#f8f9fa",
+    "on_surface_variant":       "#adb5bd",
+    "error":                    "#ff8787",
+    "error_container":          "#2c0b0e",
+    "success":                  "#69db7c",
+    "outline":                  "#262626",
+    "outline_variant":          "#1a1a1a",
+    "notification_bg":          "#2c3036",
+    "notification_text":        "#f8f9fa",
+}
+
+COLORS = dict(LIGHT_COLORS)
 C = COLORS
 
-# Manrope and Inter are bundled or downloaded as Google Fonts, 
-# but we add OS-native fallbacks just in case.
-FONT_HEADLINE = "'Manrope', 'Inter', 'Segoe UI', 'San Francisco', 'Helvetica Neue', 'Arial', sans-serif"
-FONT_BODY = "'Inter', 'Segoe UI', 'San Francisco', 'Helvetica Neue', 'Arial', sans-serif"
-FONT_MONO = "'Consolas', 'Menlo', 'Monaco', 'DejaVu Sans Mono', 'Courier New', monospace"
-
-# ============================================================
-# DIMENSION TOKENS
-# ============================================================
-
-NAVBAR_HEIGHT = 72
-BORDER_RADIUS_CARD = 20
-BORDER_RADIUS_BUTTON = 12
+FONT_HEADLINE = "'Inter', 'Segoe UI', sans-serif"
+FONT_BODY = "'Inter', 'Segoe UI', sans-serif"
+BORDER_RADIUS_CARD = 16
+BORDER_RADIUS_BUTTON = 10
 BORDER_RADIUS_INPUT = 10
 
-# ============================================================
-# REUSABLE QSS STYLESHEETS
-# ============================================================
+def set_active_theme(theme_name="light"):
+    src = DARK_COLORS if theme_name == "dark" else LIGHT_COLORS
+    C.clear()
+    C.update(src)
 
-def get_main_window_qss():
-    """Global stylesheet for the main QApplication window."""
+def get_main_window_qss(colors=None):
+    if colors is None: colors = C
+    is_dark = (colors['surface'] == DARK_COLORS['surface'])
+    
     return f"""
         QWidget {{
-            background-color: {C['surface']};
-            color: {C['on_surface']};
             font-family: {FONT_BODY};
-            font-size: 13px;
+            font-size: 14px;
+            color: {colors['on_surface']};
+            background-color: {colors['surface']};
         }}
-        QLineEdit {{
-            background-color: {C['surface_container_low']};
-            border: 2px solid {C['outline_variant']}40;
+        
+        QMainWindow, QStackedWidget, QScrollArea, QWidget#CentralWidget, QFrame#ContentContainer, QWidget#grid_widget {{
+            background-color: {colors['surface']};
+            border: none;
+        }}
+
+        QLabel, QCheckBox, QRadioButton, QGroupBox, QWidget#queue_container {{
+            background-color: transparent;
+        }}
+
+        /* Typography */
+        QLabel#PageTitle {{ font-size: 32px; font-weight: 800; color: {colors['on_surface']}; }}
+        QLabel#SubtitleLabel {{ font-size: 15px; color: {colors['on_surface_variant']}; }}
+        QLabel#SectionTitle {{ font-weight: 800; font-size: 10px; color: {colors['primary']}; letter-spacing: 1.5px; text-transform: uppercase; }}
+        
+        QLabel#StatusLabel {{ font-size: 11px; font-weight: 800; color: {colors['primary']}; }}
+        QLabel#StatusLabel[state="success"] {{ color: {colors['success']}; }}
+        QLabel#StatusLabel[state="error"] {{ color: {colors['error']}; }}
+        QLabel#StatusLabel[state="active"] {{ color: {colors['primary']}; }}
+
+        /* Input / SpinBox */
+        QLineEdit, QSpinBox, QDoubleSpinBox {{
+            background-color: {colors['surface_container_low']};
+            border: none;
             border-radius: {BORDER_RADIUS_INPUT}px;
-            padding: 10px 14px;
-            color: {C['on_surface']};
-            font-family: {FONT_MONO};
-            font-size: 13px;
+            padding: 10px 16px;
+            color: {colors['on_surface']} !important;
         }}
-        QLineEdit:focus {{
-            border: 2px solid {C['primary']};
-        }}
-        QPushButton {{
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24243a, stop:1 #1e1e32);
-            border: 1px solid #474658;
-            border-radius: {BORDER_RADIUS_BUTTON}px;
-            padding: 10px 20px;
-            color: {C['on_surface']};
-            font-weight: bold;
-            font-size: 12px;
-            font-family: {FONT_HEADLINE};
-            outline: none;
-        }}
-        QPushButton:hover {{
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2a2a42, stop:1 #24243a);
-            border: 1px solid #757387;
-        }}
-        QPushButton:pressed {{
-            background-color: #1a1a2e;
-        }}
-        QPushButton#ActionButton {{
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8cb7fe, stop:1 #7faaef);
-            color: {C['on_primary']};
-            border: 1px solid #8cb7fe;
-            font-weight: 800;
-        }}
-        QPushButton#ActionButton:hover {{
-            background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #7faaef, stop:1 #77a2e6);
-        }}
-        QPushButton#DangerButton {{
-            background-color: {C['error']};
-            color: #ffffff;
+        
+        QSpinBox::up-button, QSpinBox::down-button {{ 
+            background-color: {colors['surface_container_high'] if is_dark else colors['surface_dim']}; 
+            width: 24px; 
             border: none;
         }}
-        QPushButton#DangerButton:hover {{
-            background-color: {C['error_dim']};
-        }}
-        QScrollArea {{
-            border: none;
-            background-color: {C['surface']};
-        }}
-        QScrollBar:vertical {{
-            background: {C['surface_container']};
-            width: 8px;
-            border-radius: 4px;
-        }}
-        QScrollBar::handle:vertical {{
-            background: {C['outline_variant']};
-            border-radius: 4px;
-            min-height: 30px;
-        }}
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-            height: 0;
-        }}
-        QProgressBar {{
-            background-color: {C['surface_container_highest']};
-            border: none;
-            border-radius: 4px;
-            text-align: center;
-            color: transparent;
-            height: 8px;
-        }}
-        QProgressBar::chunk {{
-            background-color: {C['secondary']};
-            border-radius: 4px;
-        }}
+        QSpinBox::up-button {{ border-top-right-radius: {BORDER_RADIUS_INPUT}px; }}
+        QSpinBox::down-button {{ border-bottom-right-radius: {BORDER_RADIUS_INPUT}px; }}
+        
+        QSpinBox::up-arrow {{ image: none; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 4px solid {colors['on_surface']}; }}
+        QSpinBox::down-arrow {{ image: none; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid {colors['on_surface']}; }}
+
+        /* ComboBox - Fully Custom Zen Style */
         QComboBox {{
-            background-color: {C['surface_container_high']};
-            border: 2px solid {C['outline_variant']}20;
+            background-color: {colors['surface_container_low']};
+            border: none;
             border-radius: {BORDER_RADIUS_INPUT}px;
-            padding: 8px 14px;
-            color: {C['on_surface']};
-            font-size: 12px;
-        }}
-        QComboBox:hover {{
-            border: 2px solid {C['primary']};
+            padding: 10px 16px;
+            color: {colors['on_surface']};
+            combobox-popup: 0; /* Important for non-native look */
         }}
         QComboBox::drop-down {{
             border: none;
             width: 30px;
         }}
+        QComboBox::down-arrow {{
+            image: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid {colors['on_surface']};
+            margin-right: 12px;
+        }}
         QComboBox QAbstractItemView {{
-            background-color: #1e1e32;
-            color: #e6e3f9;
-            border: 1px solid #474658;
+            background-color: {colors['surface_container_low']};
+            color: {colors['on_surface']};
+            border: 1px solid {colors['outline_variant']};
             border-radius: 8px;
-            selection-background-color: #2a2a42;
-            selection-color: #8cb7fe;
+            selection-background-color: {colors['surface_container_highest']};
+            selection-color: {colors['on_surface']};
             outline: none;
-            padding: 4px;
+        }}
+        QComboBox QListView {{
+            background-color: {colors['surface_container_low']};
+            color: {colors['on_surface']};
+            border: 1px solid {colors['outline_variant']};
+            border-radius: 8px;
         }}
         QComboBox QAbstractItemView::item {{
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin: 2px 0;
+            padding: 12px;
         }}
-        QComboBox QAbstractItemView::item:hover {{
-            background-color: #24243a;
+
+        /* Cards */
+        QFrame#BentoCard, QFrame#VideoCard, QFrame#ScannerVideoCard, QFrame#QueueItem, QFrame#FolderCard {{
+            background-color: {colors['surface_bright'] if is_dark else colors['surface_container_lowest']};
+            border: none;
+            border-radius: {BORDER_RADIUS_CARD}px;
         }}
+        
+        QFrame#CardThumb {{
+            background-color: {colors['surface_container_low']};
+            border-radius: 0px;
+        }}
+        
+        QFrame#StatBox {{
+            background-color: {colors['surface_container_low']};
+            border-radius: 12px;
+            border: none;
+        }}
+        
+        QLabel#GeoBanner {{
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 10px;
+            letter-spacing: 1px;
+            padding: 6px 12px;
+        }}
+        QLabel#GeoBanner[state="error"] {{
+            background-color: {colors['error_container']};
+            color: {colors['error']};
+        }}
+        QLabel#GeoBanner[state="success"] {{
+            background-color: {colors['surface_container_low']};
+            color: {colors['success']};
+        }}
+
+        /* Checkbox */
+        QCheckBox::indicator {{
+            width: 20px; height: 20px; border-radius: 6px;
+            border: 2px solid {colors['outline']};
+            background: {colors['surface_bright']};
+        }}
+        QCheckBox::indicator:checked {{
+            background: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+
+        /* Buttons */
+        QPushButton {{
+            background-color: {colors['surface_container_low']};
+            border: none;
+            border-radius: {BORDER_RADIUS_BUTTON}px;
+            padding: 10px 20px;
+            color: {colors['on_surface']};
+            font-weight: 700;
+        }}
+        QPushButton:hover {{ background-color: {colors['surface_container_high']}; }}
+        QPushButton#ActionButton {{ background-color: {colors['primary']}; color: {colors['on_primary']}; border: none; font-weight: 800; }}
+
+        /* Progress Bar */
+        QProgressBar {{ background-color: {colors['surface_container_low']}; border-radius: 6px; text-align: center; color: transparent; height: 8px; border: none; }}
+        QProgressBar::chunk {{ background-color: {colors['primary']}; border-radius: 6px; }}
     """
 
+def get_navbar_qss(colors=None):
+    if colors is None: colors = C
+    return f"QFrame#Sidebar {{ background-color: {colors['surface_dim']}; border: none; }}"
 
-def get_navbar_qss():
-    """Stylesheet for the top navigation bar."""
-    return f"""
-        QFrame#Navbar {{
-            background-color: {C['surface']};
-            border-bottom: 2px solid {C['outline_variant']}30;
-        }}
-    """
-
-
-def get_navbar_button_qss(active=False):
-    """Stylesheet for a navigation button (Navbar)."""
+def get_navbar_button_qss(active=False, colors=None):
+    if colors is None: colors = C
     if active:
-        return f"""
-            QPushButton {{
-                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #8cb7fe, stop:1 #7faaef);
-                color: {C['on_primary']};
-                border: none;
-                border-radius: 12px;
-                padding: 10px 24px;
-                font-weight: 800;
-                font-size: 13px;
-                font-family: {FONT_HEADLINE};
-                text-align: left;
-                padding-left: 20px;
-                outline: none;
-            }}
-        """
+        return f"QPushButton {{ background-color: {colors['surface_container_low']}; color: {colors['on_surface']}; border-left: 4px solid {colors['on_surface']}; padding: 14px 16px; text-align: left; border-radius: 0; font-weight: 800; }}"
     else:
-        return f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {C['on_surface_variant']};
-                border: none;
-                border-radius: 12px;
-                padding: 10px 24px;
-                font-weight: 500;
-                font-size: 13px;
-                font-family: {FONT_HEADLINE};
-                text-align: left;
-                padding-left: 20px;
-                outline: none;
-            }}
-            QPushButton:hover {{
-                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24243a, stop:1 #1e1e32);
-                color: {C['on_surface']};
-            }}
-        """
+        return f"QPushButton {{ background: transparent; color: {colors['on_surface_variant']}; border: none; padding: 14px 16px 14px 24px; text-align: left; font-weight: 600; }} QPushButton:hover {{ background-color: {colors['surface_container_low']}; color: {colors['on_surface']}; }}"
+
+def action_btn_style(colors=None):
+    if colors is None: colors = C
+    return f"QPushButton {{ background-color: {colors['primary']}; color: {colors['on_primary']}; border: none; border-radius: {BORDER_RADIUS_BUTTON}px; font-weight: 800; }}"
+
+def danger_btn_style(colors=None):
+    if colors is None: colors = C
+    return f"QPushButton {{ background: transparent; color: {colors['error']}; border: none; font-weight: 800; }}"

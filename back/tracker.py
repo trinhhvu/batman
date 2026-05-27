@@ -220,7 +220,7 @@ class DailymotionTracker:
                 if not info:
                     return []
                 api_fields = (
-                    "thumbnail_480_url,thumbnail_720_url,owner,channel,"
+                    "thumbnail_url,thumbnail_480_url,thumbnail_720_url,owner,channel,"
                     "title,views_total,views_last_day,views_last_hour,"
                     "updated_time,url,geoblocking,duration"
                 )
@@ -244,7 +244,13 @@ class DailymotionTracker:
                             dur = data.get("duration", 0)
                             mm, ss = divmod(dur, 60)
                             data["duration_string"] = f"{int(mm):02d}:{int(ss):02d}"
-                            data["thumbnail"] = data.get('thumbnail_720_url') or data.get('thumbnail_480_url') or data.get('thumbnail', '')
+                            data["thumbnail"] = (
+                                data.get('thumbnail_url') or 
+                                data.get('thumbnail_720_url') or 
+                                data.get('thumbnail_480_url') or 
+                                data.get('thumbnail') or 
+                                entry.get('thumbnail', '')
+                            )
                             results.append(data)
                         else:
                             v_url = f"https://www.dailymotion.com/video/{vid}"
@@ -256,7 +262,7 @@ class DailymotionTracker:
                                 "title": full.get("title", entry.get("title", "Unknown")),
                                 "view_count": full.get("view_count", 0),
                                 "duration_string": f"{int(mm):02d}:{int(ss):02d}",
-                                "thumbnail": full.get("thumbnail", ""),
+                                "thumbnail": full.get("thumbnail") or full.get("thumbnails", [{}])[0].get("url", ""),
                             })
                     except Exception:
                         results.append({

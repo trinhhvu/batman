@@ -1,8 +1,6 @@
 """
-front/pages/download_page.py — Downloader Page (PURE UI)
-=========================================================
-URL input, video analysis, queue management, download progress.
-All engine/logic delegated to back/.
+front/pages/download_page.py — Downloader Page (AuraOS Redesign V2)
+====================================================================
 """
 
 import os
@@ -12,21 +10,17 @@ import time
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QComboBox, QProgressBar, QScrollArea, QFrame, QMessageBox,
-    QFileDialog
+    QFileDialog, QGraphicsDropShadowEffect, QListView
 )
-from PyQt5.QtGui import QPixmap, QFont, QCursor
+from PyQt5.QtGui import QPixmap, QFont, QCursor, QColor
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from front.design import COLORS as C, FONT_HEADLINE, FONT_BODY, BORDER_RADIUS_CARD
+from front.design import COLORS as C, FONT_HEADLINE, FONT_BODY, BORDER_RADIUS_CARD, action_btn_style, danger_btn_style
 from back.engine import DownloadEngine, parse_progress, DownloadCancelled
-from back.utils import check_ffmpeg_exists
 from back.config import load_download_path, save_download_path
-from back.workers import DownloadWorkerSignals, ThumbnailWorker
+from back.workers import DownloadWorkerSignals
 
 
-# ──────────────────────────────────────────────────────────────
-# Queue Item Widget (pure UI)
-# ──────────────────────────────────────────────────────────────
 class QueueItemWidget(QFrame):
     def __init__(self, index, item_data, is_active, parent_page):
         super().__init__()
@@ -37,75 +31,36 @@ class QueueItemWidget(QFrame):
         self._build_ui()
 
     def _build_ui(self):
-        bg = C['surface_container_high'] if self.is_active else C['surface_container']
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg};
-                border: 2px solid {C['outline_variant']}20;
-                border-radius: 12px;
-            }}
-        """)
+        self.setObjectName("QueueItem")
+        # Style is now handled globally in design.py
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(10)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
 
         num = QLabel(f"{self.index + 1}")
         num.setFixedWidth(24)
-        num.setStyleSheet(f"color: {C['on_surface_variant']}; font-weight: bold; font-size: 12px;")
-        num.setAlignment(Qt.AlignCenter)
+        num.setObjectName("StatusLabel")
         layout.addWidget(num)
 
         title_str = str(self.item_data.get('title', 'Video'))
-        title = QLabel(title_str[:35] + ("..." if len(title_str) > 35 else ""))
-        title.setStyleSheet(
-            f"color: {C['on_surface']}; "
-            f"font-weight: {'800' if self.is_active else '500'}; font-size: 12px;"
-        )
+        title = QLabel(title_str[:45] + ("..." if len(title_str) > 45 else ""))
+        title.setObjectName("SubtitleLabel")
         layout.addWidget(title, 1)
 
         status = self.item_data.get('status', 'Waiting')
-        if status == "Downloading":
-            badge_bg, badge_color, badge_text = f"{C['secondary']}20", C['secondary'], "● DOWNLOADING"
-        elif status == "Error":
-            badge_bg, badge_color, badge_text = f"{C['error']}20", C['error'], "⚠ ERROR"
-        else:
-            badge_bg, badge_color, badge_text = f"{C['on_surface_variant']}15", C['on_surface_variant'], "○ WAITING"
-
-        badge = QLabel(badge_text)
-        badge.setStyleSheet(f"""
-            color: {badge_color}; background-color: {badge_bg};
-            font-size: 9px; font-weight: bold; padding: 3px 8px;
-            border-radius: 8px; letter-spacing: 1px;
-        """)
+        badge = QLabel(status.upper())
+        badge.setObjectName("StatusLabel")
         layout.addWidget(badge)
 
-        btn_enabled = not self.is_active
-        for icon, handler in [("▲", lambda: self.parent_page.move_up(self.index)),
-                              ("▼", lambda: self.parent_page.move_down(self.index))]:
-            btn = QPushButton(icon)
-            btn.setFixedSize(28, 28)
-            btn.setEnabled(btn_enabled)
-            btn.setStyleSheet(f"""
-                QPushButton {{ background-color: {C['surface_container_highest']}; color: {C['on_surface_variant']}; border: none; border-radius: 6px; font-size: 11px; }}
-                QPushButton:hover {{ background-color: {C['surface_bright']}; color: {C['on_surface']}; }}
-            """)
-            btn.clicked.connect(handler)
-            layout.addWidget(btn)
-
-        remove_btn = QPushButton("✕")
-        remove_btn.setFixedSize(28, 28)
-        remove_btn.setEnabled(btn_enabled)
-        remove_btn.setStyleSheet(f"""
-            QPushButton {{ background-color: {C['error']}20; color: {C['error']}; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; }}
-            QPushButton:hover {{ background-color: {C['error']}40; }}
-        """)
-        remove_btn.clicked.connect(lambda: self.parent_page.remove_item(self.index))
-        layout.addWidget(remove_btn)
+        if not self.is_active:
+            remove_btn = QPushButton("DELETE")
+            remove_btn.setFixedSize(60, 28)
+            remove_btn.setCursor(Qt.PointingHandCursor)
+            remove_btn.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {C['error']}; border: 1px solid {C['error']}; border-radius: 4px; font-size: 10px; font-weight: 800; }}")
+            remove_btn.clicked.connect(lambda: self.parent_page.remove_item(self.index))
+            layout.addWidget(remove_btn)
 
 
-# ──────────────────────────────────────────────────────────────
-# Download Page
-# ──────────────────────────────────────────────────────────────
 class DownloadPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -113,18 +68,15 @@ class DownloadPage(QWidget):
         os.makedirs(self.download_path, exist_ok=True)
         self.queue = []
         self.is_downloading = False
-        self.current_video_info = None
         self.engine = DownloadEngine(self.download_path)
         self.signals = DownloadWorkerSignals()
-        self._thumb_pixmap = None
-
+        
         self._connect_signals()
+        self.setObjectName("DownloadPage")
         self._build_ui()
-        self._check_ffmpeg()
 
     def _connect_signals(self):
         self.signals.update_progress.connect(self._on_progress)
-        self.signals.download_finished.connect(self._on_download_finished)
         self.signals.download_error.connect(self._on_download_error)
         self.signals.download_cancelled.connect(self._on_download_cancelled)
         self.signals.analysis_done.connect(self._on_analysis_done)
@@ -134,168 +86,158 @@ class DownloadPage(QWidget):
         self.signals.all_done.connect(self._on_all_done)
 
     def _build_ui(self):
-        root = QHBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(32)
 
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(30, 20, 20, 20)
-        left_layout.setSpacing(20)
+        # Header
+        header = QVBoxLayout()
+        title = QLabel("Downloads")
+        title.setObjectName("PageTitle")
+        header.addWidget(title)
+        
+        self.sub_info = QLabel("0 Active, 0 Completed")
+        self.sub_info.setObjectName("SubtitleLabel")
+        header.addWidget(self.sub_info)
+        layout.addLayout(header)
 
-        header = QLabel("Video Downloader")
-        header.setFont(QFont(FONT_HEADLINE, 22, QFont.ExtraBold))
-        header.setStyleSheet(f"color: {C['on_surface']};")
-        left_layout.addWidget(header)
+        # Main Content Split
+        content = QHBoxLayout()
+        content.setSpacing(32)
 
-        sub = QLabel("Paste a Dailymotion URL to analyze and download in high quality.")
-        sub.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 13px;")
-        left_layout.addWidget(sub)
-
-        url_row = QHBoxLayout()
-        url_row.setSpacing(10)
+        # Left Column
+        left_box = QVBoxLayout()
+        left_box.setSpacing(24)
+        
+        # 1. Action Card
+        self.action_card = QFrame()
+        self.action_card.setObjectName("BentoCard")
+        action_layout = QVBoxLayout(self.action_card)
+        action_layout.setContentsMargins(24, 24, 24, 24)
+        action_layout.setSpacing(20)
+        
+        url_label = QLabel("NEW DOWNLOAD")
+        url_label.setObjectName("SectionTitle")
+        action_layout.addWidget(url_label)
+        
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Paste Dailymotion URL here...")
-        self.url_input.returnPressed.connect(self._start_analyze)
-        url_row.addWidget(self.url_input, 1)
+        self.url_input.setPlaceholderText("Paste video URL here...")
+        self.url_input.setMinimumHeight(44)
+        action_layout.addWidget(self.url_input)
+        
+        row = QHBoxLayout()
+        self.quality_combo = QComboBox()
+        self.quality_combo.setView(QListView())
+        self.quality_combo.addItems(["Best Available", "1080p", "720p", "480p"])
+        self.quality_combo.setMinimumHeight(44)
+        row.addWidget(self.quality_combo, 1)
+        
         self.analyze_btn = QPushButton("ANALYZE")
         self.analyze_btn.setObjectName("ActionButton")
-        self.analyze_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.analyze_btn.setFixedWidth(120)
+        self.analyze_btn.setFixedSize(120, 44)
         self.analyze_btn.clicked.connect(self._start_analyze)
-        url_row.addWidget(self.analyze_btn)
-        left_layout.addLayout(url_row)
-
-        folder_row = QHBoxLayout()
-        folder_row.setSpacing(10)
-        self.folder_label = QLabel(f"📁  {self.download_path}")
-        self.folder_label.setStyleSheet(f"color: {C['secondary']}; font-size: 12px; font-weight: bold;")
-        folder_row.addWidget(self.folder_label)
-        folder_row.addStretch()
-        change_btn = QPushButton("Change Folder")
-        change_btn.setFixedWidth(130)
+        row.addWidget(self.analyze_btn)
+        action_layout.addLayout(row)
+        
+        folder_card = QFrame()
+        folder_card.setObjectName("FolderCard")
+        f_layout = QHBoxLayout(folder_card)
+        f_layout.setContentsMargins(12, 4, 12, 4)
+        self.folder_label = QLabel(f"{self.download_path[:50]}...")
+        self.folder_label.setObjectName("SubtitleLabel")
+        f_layout.addWidget(self.folder_label, 1)
+        
+        change_btn = QPushButton("CHANGE")
+        change_btn.setObjectName("ChangeFolderBtn")
+        change_btn.setCursor(Qt.PointingHandCursor)
         change_btn.clicked.connect(self._change_folder)
-        folder_row.addWidget(change_btn)
-        left_layout.addLayout(folder_row)
-
-        self.preview_frame = QFrame()
-        self.preview_frame.setStyleSheet(f"""
-            QFrame {{ background-color: {C['surface_container']}; border: 2px solid {C['outline_variant']}15; border-radius: {BORDER_RADIUS_CARD}px; }}
-        """)
-        preview_layout = QVBoxLayout(self.preview_frame)
-        preview_layout.setContentsMargins(20, 20, 20, 20)
-        preview_layout.setSpacing(12)
-
-        self.thumb_label = QLabel()
-        self.thumb_label.setFixedHeight(180)
-        self.thumb_label.setAlignment(Qt.AlignCenter)
-        self.thumb_label.setStyleSheet(f"background-color: {C['surface_container_lowest']}; border-radius: 12px;")
-        preview_layout.addWidget(self.thumb_label)
-
-        self.title_label = QLabel("No video selected")
-        self.title_label.setFont(QFont(FONT_HEADLINE, 14, QFont.Bold))
-        self.title_label.setStyleSheet(f"color: {C['on_surface']}; background: transparent; border: none;")
-        self.title_label.setWordWrap(True)
-        preview_layout.addWidget(self.title_label)
-
-        quality_row = QHBoxLayout()
-        self.quality_combo = QComboBox()
-        self.quality_combo.addItems(["Best Available", "1080p", "720p", "480p"])
-        self.quality_combo.setFixedWidth(200)
-        quality_row.addWidget(self.quality_combo)
-        quality_row.addStretch()
-        self.add_queue_btn = QPushButton("ADD TO QUEUE")
-        self.add_queue_btn.setObjectName("ActionButton")
-        self.add_queue_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.add_queue_btn.setEnabled(False)
-        self.add_queue_btn.setFixedWidth(160)
-        self.add_queue_btn.clicked.connect(self._add_to_queue)
-        quality_row.addWidget(self.add_queue_btn)
-        preview_layout.addLayout(quality_row)
-        left_layout.addWidget(self.preview_frame)
-
+        f_layout.addWidget(change_btn)
+        action_layout.addWidget(folder_card)
+        
+        left_box.addWidget(self.action_card)
+        
+        # 2. Progress Card
+        self.progress_card = QFrame()
+        self.progress_card.setObjectName("BentoCard")
+        prog_layout = QVBoxLayout(self.progress_card)
+        prog_layout.setContentsMargins(24, 24, 24, 24)
+        prog_layout.setSpacing(16)
+        
+        prog_title_label = QLabel("ACTIVE PROCESS")
+        prog_title_label.setObjectName("SectionTitle")
+        prog_layout.addWidget(prog_title_label)
+        
+        self.active_title = QLabel("Ready to download")
+        self.active_title.setObjectName("SubtitleLabel")
+        self.active_title.setWordWrap(True)
+        prog_layout.addWidget(self.active_title)
+        
         self.progress_bar = QProgressBar()
-        self.progress_bar.setFixedHeight(8)
         self.progress_bar.setRange(0, 1000)
         self.progress_bar.setValue(0)
-        left_layout.addWidget(self.progress_bar)
+        prog_layout.addWidget(self.progress_bar)
+        
+        self.status_label = QLabel("Idle")
+        self.status_label.setObjectName("SubtitleLabel")
+        prog_layout.addWidget(self.status_label)
+        
+        left_box.addWidget(self.progress_card)
+        left_box.addStretch()
+        content.addLayout(left_box, 3)
 
-        self.status_label = QLabel("Ready")
-        self.status_label.setStyleSheet(f"color: {C['secondary']}; font-size: 12px; font-weight: bold;")
-        left_layout.addWidget(self.status_label)
-        left_layout.addStretch()
-        root.addWidget(left_panel, 3)
-
-        right_panel = QFrame()
-        right_panel.setStyleSheet(f"""
-            QFrame {{ background-color: {C['surface_container']}; border-left: 2px solid {C['outline_variant']}15; }}
-        """)
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(20, 20, 20, 20)
-        right_layout.setSpacing(15)
-
-        queue_header = QLabel("Download Queue")
-        queue_header.setFont(QFont(FONT_HEADLINE, 16, QFont.Bold))
-        queue_header.setStyleSheet(f"color: {C['on_surface']}; background: transparent; border: none;")
-        right_layout.addWidget(queue_header)
-
+        # Right Column: Queue
+        self.queue_card = QFrame()
+        self.queue_card.setObjectName("BentoCard")
+        q_layout = QVBoxLayout(self.queue_card)
+        q_layout.setContentsMargins(24, 24, 24, 24)
+        
+        q_title = QLabel("ACTIVE QUEUE")
+        q_title.setObjectName("SectionTitle")
+        q_layout.addWidget(q_title)
+        
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("background: transparent; border: none;")
         self.queue_container = QWidget()
-        self.queue_container.setStyleSheet("background: transparent;")
         self.queue_layout = QVBoxLayout(self.queue_container)
-        self.queue_layout.setContentsMargins(0, 0, 0, 0)
-        self.queue_layout.setSpacing(8)
+        self.queue_layout.setSpacing(10)
         self.queue_layout.setAlignment(Qt.AlignTop)
         scroll.setWidget(self.queue_container)
-        right_layout.addWidget(scroll, 1)
-
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(8)
-        self.start_btn = QPushButton("START QUEUE DOWNLOAD")
-        self.start_btn.setObjectName("ActionButton")
-        self.start_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.start_btn.setFixedHeight(44)
+        q_layout.addWidget(scroll)
+        
+        self.start_btn = QPushButton("START QUEUE")
+        self.start_btn.setStyleSheet(action_btn_style())
+        self.start_btn.setMinimumHeight(48)
         self.start_btn.clicked.connect(self._start_queue)
-        btn_row.addWidget(self.start_btn, 1)
-        self.cancel_btn = QPushButton("⏹ CANCEL")
-        self.cancel_btn.setObjectName("DangerButton")
-        self.cancel_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.cancel_btn.setFixedHeight(44)
-        self.cancel_btn.setFixedWidth(100)
+        q_layout.addWidget(self.start_btn)
+        
+        self.cancel_btn = QPushButton("STOP")
+        self.cancel_btn.setStyleSheet(danger_btn_style())
+        self.cancel_btn.setMinimumHeight(48)
         self.cancel_btn.setVisible(False)
         self.cancel_btn.clicked.connect(self._cancel_download)
-        btn_row.addWidget(self.cancel_btn)
-        right_layout.addLayout(btn_row)
-        root.addWidget(right_panel, 2)
+        q_layout.addWidget(self.cancel_btn)
+        
+        content.addWidget(self.queue_card, 2)
+        layout.addLayout(content)
 
     def set_url_and_analyze(self, url: str):
         self.url_input.setText(url)
         self._start_analyze()
 
-    def _check_ffmpeg(self):
-        exists, path = check_ffmpeg_exists()
-        if not exists:
-            QMessageBox.warning(self, "System Warning",
-                f"ffmpeg not found!\nExpected: {path}\n\n"
-                "On macOS: brew install ffmpeg\n"
-                "On Windows: place ffmpeg.exe in app folder.")
-
     def _change_folder(self):
-        path = QFileDialog.getExistingDirectory(self, "Select Download Folder", self.download_path)
+        path = QFileDialog.getExistingDirectory(self, "Select Folder", self.download_path)
         if path:
             self.download_path = path
             self.engine.download_path = path
-            self.folder_label.setText(f"📁  {path}")
+            self.folder_label.setText(f"📁 {path[:40]}...")
             save_download_path(path)
 
     def _start_analyze(self):
         url = self.url_input.text().strip()
-        if not url:
-            return
+        if not url: return
         self.analyze_btn.setEnabled(False)
-        self.analyze_btn.setText("Analyzing...")
+        self.analyze_btn.setText("...")
         threading.Thread(target=self._analyze_worker, args=(url,), daemon=True).start()
 
     def _analyze_worker(self, url):
@@ -306,65 +248,32 @@ class DownloadPage(QWidget):
             self.signals.analysis_error.emit(str(e))
 
     def _on_analysis_done(self, info):
-        self.current_video_info = info
-        self.title_label.setText(info.get('title', 'Unknown'))
-        self.add_queue_btn.setEnabled(True)
         self.analyze_btn.setEnabled(True)
         self.analyze_btn.setText("ANALYZE")
-        thumb_url = info.get('thumbnail')
-        if thumb_url:
-            self._thumb_worker = ThumbnailWorker(thumb_url)
-            self._thumb_worker.loaded.connect(self._on_thumb_loaded)
-            self._thumb_worker.start()
-
-    def _on_thumb_loaded(self, data: bytes):
-        pixmap = QPixmap()
-        pixmap.loadFromData(data)
-        scaled = pixmap.scaled(400, 180, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-        self.thumb_label.setPixmap(scaled)
-
-    def _on_analysis_error(self, msg):
-        self.analyze_btn.setEnabled(True)
-        self.analyze_btn.setText("ANALYZE")
-        if any(kw in msg.lower() for kw in ['404', 'not found', 'deleted', 'unavailable', 'private', 'removed']):
-            QMessageBox.warning(self, "Video Unavailable", "Video không tồn tại hoặc đã bị xóa.")
-        else:
-            QMessageBox.warning(self, "Analysis Error", f"Không thể phân tích video:\n{msg}")
-
-    def _add_to_queue(self):
-        if not self.current_video_info:
-            return
         item = {
             "url": self.url_input.text().strip(),
-            "title": self.current_video_info.get('title', 'Video'),
+            "title": info.get('title', 'Video'),
             "quality": self.quality_combo.currentText(),
             "status": "Waiting"
         }
         self.queue.append(item)
         self.refresh_queue_display()
         self.url_input.clear()
-        self.add_queue_btn.setEnabled(False)
-        self.current_video_info = None
+        self.sub_info.setText(f"{len([i for i in self.queue if i['status'] != 'Done'])} Active, {len([i for i in self.queue if i['status'] == 'Done'])} Completed")
+
+    def _on_analysis_error(self, msg):
+        self.analyze_btn.setEnabled(True)
+        self.analyze_btn.setText("ANALYZE")
+        QMessageBox.warning(self, "Analysis Error", msg)
 
     def refresh_queue_display(self):
         while self.queue_layout.count():
             child = self.queue_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            if child.widget(): child.widget().deleteLater()
         for i, item in enumerate(self.queue):
+            if item['status'] == 'Done': continue
             is_active = (i == 0 and self.is_downloading)
-            widget = QueueItemWidget(i, item, is_active, self)
-            self.queue_layout.addWidget(widget)
-
-    def move_up(self, idx):
-        if idx > 0:
-            self.queue[idx], self.queue[idx - 1] = self.queue[idx - 1], self.queue[idx]
-            self.refresh_queue_display()
-
-    def move_down(self, idx):
-        if idx < len(self.queue) - 1:
-            self.queue[idx], self.queue[idx + 1] = self.queue[idx + 1], self.queue[idx]
-            self.refresh_queue_display()
+            self.queue_layout.addWidget(QueueItemWidget(i, item, is_active, self))
 
     def remove_item(self, idx):
         self.queue.pop(idx)
@@ -373,31 +282,29 @@ class DownloadPage(QWidget):
     def _cancel_download(self):
         self.engine.cancel_download()
         self.cancel_btn.setEnabled(False)
-        self.cancel_btn.setText("Cancelling...")
-        self.signals.status_text.emit("⏹ Cancelling — cleaning up partial files...")
+        self.cancel_btn.setText("Stopping...")
 
     def _start_queue(self):
-        if self.is_downloading or not self.queue:
-            if not self.queue:
-                QMessageBox.information(self, "Queue", "Queue is empty!")
-            return
+        if self.is_downloading or not self.queue: return
         self.is_downloading = True
-        self.start_btn.setEnabled(False)
-        self.start_btn.setText("PROCESSING...")
+        self.start_btn.setVisible(False)
         self.cancel_btn.setVisible(True)
         self.cancel_btn.setEnabled(True)
-        self.cancel_btn.setText("⏹ CANCEL")
+        self.cancel_btn.setText("STOP")
         threading.Thread(target=self._process_queue, daemon=True).start()
 
     def _process_queue(self):
         while self.queue:
-            if self.engine.is_cancelled():
-                break
+            if self.engine.is_cancelled(): break
             item = self.queue[0]
+            if item['status'] == 'Done': 
+                self.queue.pop(0)
+                continue
+            
             item["status"] = "Downloading"
             self.signals.refresh_queue.emit()
-            self.signals.status_text.emit(f"Downloading: {str(item.get('title', 'Video'))[:40]}...")
-
+            self.signals.status_text.emit(f"Preparing: {item['title'][:40]}...")
+            
             def hook(d):
                 result = parse_progress(d)
                 if result:
@@ -406,48 +313,44 @@ class DownloadPage(QWidget):
 
             try:
                 self.engine.start_download(item['url'], item['quality'], hook)
+                item['status'] = "Done"
                 self.queue.pop(0)
                 self.signals.refresh_queue.emit()
             except DownloadCancelled:
-                self.is_downloading = False
-                self.signals.download_cancelled.emit()
-                return
+                break
             except Exception as e:
-                self.signals.download_error.emit(f"Video không hỗ trợ hoặc bị chặn.\nChi tiết: {str(e)}")
-                if self.queue:
-                    self.queue.pop(0)
+                self.signals.download_error.emit(str(e))
+                self.queue.pop(0)
                 self.signals.refresh_queue.emit()
-            time.sleep(1)
+            time.sleep(0.5)
 
         self.is_downloading = False
         self.signals.all_done.emit()
 
     def _on_progress(self, fraction, percent_str, speed_str):
         self.progress_bar.setValue(int(fraction * 1000))
-        self.status_label.setText(f"Progress: {percent_str}% | Speed: {speed_str}")
-
-    def _on_download_finished(self):
-        pass
+        self.status_label.setText(f"{percent_str}% • {speed_str}")
 
     def _on_download_error(self, msg):
-        QMessageBox.warning(self, "Download Skip", msg)
+        QMessageBox.warning(self, "Download Error", msg)
 
     def _on_status_text(self, text):
         self.status_label.setText(text)
 
     def _on_download_cancelled(self):
-        self.progress_bar.setValue(0)
-        self.status_label.setText("⏹ Download cancelled. Partial files deleted.")
-        self.status_label.setStyleSheet(f"color: {C['error']}; font-size: 12px; font-weight: bold;")
-        self.start_btn.setEnabled(True)
-        self.start_btn.setText("START QUEUE DOWNLOAD")
-        self.cancel_btn.setVisible(False)
-        self.signals.refresh_queue.emit()
+        self._on_all_done()
+        self.status_label.setText("Stopped.")
 
     def _on_all_done(self):
-        self.progress_bar.setValue(0)
-        self.status_label.setText("✅ All tasks finished!")
-        self.status_label.setStyleSheet(f"color: {C['secondary']}; font-size: 12px; font-weight: bold;")
-        self.start_btn.setEnabled(True)
-        self.start_btn.setText("START QUEUE DOWNLOAD")
+        self.is_downloading = False
+        self.start_btn.setVisible(True)
         self.cancel_btn.setVisible(False)
+        self.progress_bar.setValue(0)
+        self.active_title.setText("Ready to download")
+        self.status_label.setText("All tasks finished")
+        self.refresh_queue_display()
+        self.sub_info.setText(f"0 Active, {len([i for i in self.queue if i['status'] == 'Done'])} Completed")
+
+    def refresh_theme(self):
+        """Standardized refresh handled by QApplication."""
+        self.refresh_queue_display()

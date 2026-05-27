@@ -18,7 +18,7 @@ USER_AGENT = (
 HEADERS = {"User-Agent": USER_AGENT, "Referer": "https://www.dailymotion.com/"}
 
 DETAIL_FIELDS = (
-    "thumbnail_480_url,thumbnail_720_url,owner,channel,"
+    "thumbnail_url,thumbnail_1080_url,thumbnail_720_url,thumbnail_480_url,owner,channel,"
     "title,views_total,views_last_day,views_last_hour,"
     "updated_time,url,geoblocking"
 )
@@ -51,6 +51,13 @@ def fetch_video_details(video_id: str) -> dict:
     v_day = int(data.get('views_last_day') or 0)
     v_hour = int(data.get('views_last_hour') or 0)
     data['views_total'] = max(v_total, v_day, v_hour)
+    data['thumbnail'] = (
+        data.get('thumbnail_url') or 
+        data.get('thumbnail_1080_url') or
+        data.get('thumbnail_720_url') or 
+        data.get('thumbnail_480_url') or 
+        ''
+    )
     return data
 
 
