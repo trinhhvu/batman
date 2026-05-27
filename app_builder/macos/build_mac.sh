@@ -24,16 +24,19 @@ python3 -m PyInstaller --noconfirm --onefile --windowed \
     --icon "$ICON" \
     --name "$NAME" \
     --add-data "../../assets:assets" \
-    --add-data "../../pages:pages" \
-    --add-data "../../widgets:widgets" \
+    --add-data "../../front:front" \
+    --add-data "../../back:back" \
     --add-data "../../config.json:." \
     --add-binary "$FFMPEG_PATH:." \
     --collect-all PyQt5 \
     --collect-all yt_dlp \
-    --hidden-import pages.analyze_page \
-    --hidden-import pages.download_page \
-    --hidden-import pages.scanner_page \
-    --hidden-import widgets.sidebar \
+    --hidden-import front.pages.analyze_page \
+    --hidden-import front.pages.download_page \
+    --hidden-import front.pages.scanner_page \
+    --hidden-import front.pages.research_page \
+    --hidden-import front.pages.upload_page \
+    --hidden-import front.pages.settings_page \
+    --hidden-import front.widgets.sidebar \
     "$MAIN"
 
 echo "[BUILD COMPLETE] → dist/$NAME.app"

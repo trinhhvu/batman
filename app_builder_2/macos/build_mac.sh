@@ -45,6 +45,8 @@ python3 -m PyInstaller \
     --hidden-import front.pages.download_page \
     --hidden-import front.pages.scanner_page \
     --hidden-import front.pages.research_page \
+    --hidden-import front.pages.upload_page \
+    --hidden-import front.pages.settings_page \
     --hidden-import front.widgets.sidebar \
     --hidden-import back.api_client \
     --hidden-import back.config \
@@ -52,6 +54,7 @@ python3 -m PyInstaller \
     --hidden-import back.tracker \
     --hidden-import back.utils \
     --hidden-import back.workers \
+    --hidden-import back.upload_worker \
     "$MAIN"
 
 APP_PATH="$DIST/$NAME.app"
