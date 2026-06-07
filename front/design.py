@@ -1,8 +1,3 @@
-"""
-design.py — Unified Design System for AuraOS / Batman v3
-========================================================
-Centralizes ALL color tokens, font settings, and reusable QSS stylesheets.
-"""
 
 LIGHT_COLORS = {
     "surface":                  "#f1f3f5",

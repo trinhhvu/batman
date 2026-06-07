@@ -1,7 +1,3 @@
-"""
-notification.py — Ultra-Minimalist Toast Notifications (AuraOS)
-==============================================================
-"""
 
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel, QGraphicsDropShadowEffect
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint, QEasingCurve

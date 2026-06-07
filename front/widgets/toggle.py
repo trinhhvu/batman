@@ -1,7 +1,3 @@
-"""
-toggle.py — iOS Style Toggle Switch for AuraOS
-=============================================
-"""
 
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, pyqtProperty, pyqtSignal, QEasingCurve

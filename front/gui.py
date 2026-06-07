@@ -1,8 +1,3 @@
-"""
-front/gui.py — Main Application Window (AuraOS / TRACK v3)
-==========================================================
-Main window with vertical sidebar navigation.
-"""
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QFrame, QGraphicsOpacityEffect
@@ -29,11 +24,11 @@ class TrackerApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AuraOS | Batman V3 Unified")
+        self.setWindowTitle("Cậu vàng")
         self.setMinimumSize(1200, 800)
         self.resize(1360, 860)
 
-        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icon.png")
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "icon moi.jpg")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 

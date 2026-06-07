@@ -1,7 +1,3 @@
-"""
-front/pages/analyze_page.py — Video Analytics Page (AuraOS Redesign)
-====================================================================
-"""
 
 import os
 import re
@@ -21,7 +17,7 @@ from back.api_client import fetch_video_details, fetch_thumbnail_data
 
 
 class CopyButton(QPushButton):
-    """A polished copy button with AuraOS styling."""
+
 
     def __init__(self, text_to_copy: str, label: str = "COPY", parent=None):
         super().__init__(parent)
@@ -76,7 +72,7 @@ class CopyButton(QPushButton):
 
 
 class VideoCard(QFrame):
-    """Bento-style analytics card following AuraOS."""
+
 
     send_to_download = pyqtSignal(str)
 
@@ -221,7 +217,7 @@ class VideoCard(QFrame):
 
 
 class AnalyzePage(QWidget):
-    """Video analysis page with AuraOS design."""
+
 
     request_download = pyqtSignal(str)
 

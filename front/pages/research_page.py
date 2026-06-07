@@ -1,7 +1,3 @@
-"""
-front/pages/research_page.py — Research & Trend Discovery (AuraOS Redesign)
-==========================================================================
-"""
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -16,7 +12,7 @@ from back.workers import ResearchWorker
 
 
 class ResearchPage(QWidget):
-    """Research page — AuraOS Design."""
+
 
     request_download = pyqtSignal(str)
 

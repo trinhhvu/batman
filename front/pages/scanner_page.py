@@ -1,7 +1,3 @@
-"""
-front/pages/scanner_page.py — Channel Scanner (AuraOS Redesign)
-==============================================================
-"""
 
 import os
 import glob

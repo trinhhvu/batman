@@ -19,7 +19,7 @@ from back.config import load_config, save_config
 from back.upload_worker import AuthWorker, UploadWorker
 
 # Sentinel text for the "add new" dropdown item
-_ADD_NEW = "[+ Thêm kênh mới]"
+_ADD_NEW = "[+ Add new channel]"
 
 
 class UploadPage(QWidget):
@@ -54,7 +54,7 @@ class UploadPage(QWidget):
         title.setObjectName("PageTitle")
         title.setFont(QFont(FONT_HEADLINE, 28, QFont.Bold))
         header.addWidget(title)
-        sub = QLabel("Quản lý nhiều kênh — upload video hàng loạt không cần trình duyệt.")
+        sub = QLabel("Manage multiple channels — batch upload videos without browser.")
         sub.setObjectName("SubtitleLabel")
         header.addWidget(sub)
         main.addLayout(header)
@@ -88,7 +88,7 @@ class UploadPage(QWidget):
         dd_row.addWidget(self.channel_combo, 1)
 
         self.delete_ch_btn = QPushButton("DELETE")
-        self.delete_ch_btn.setFixedSize(72, 44)
+        self.delete_ch_btn.setFixedSize(90, 44)
         self.delete_ch_btn.setStyleSheet(
             f"QPushButton {{ background-color: transparent; color: {C['error']}; "
             f"border: 1px solid {C['error']}; border-radius: 10px; "
@@ -99,16 +99,16 @@ class UploadPage(QWidget):
         cl.addLayout(dd_row)
 
         # Status badge
-        self.status_badge = QLabel("Chưa xác thực")
+        self.status_badge = QLabel("Unauthenticated")
         self.status_badge.setObjectName("GeoBanner")
         self.status_badge.setAlignment(Qt.AlignCenter)
         self.status_badge.setMinimumHeight(34)
-        self._set_badge("disconnected", "Chưa xác thực")
+        self._set_badge("disconnected", "Unauthenticated")
         cl.addWidget(self.status_badge)
 
         # Credentials
         self.account_name_input = QLineEdit()
-        self.account_name_input.setPlaceholderText("Tên kênh (để phân biệt, ví dụ: Kênh 1)")
+        self.account_name_input.setPlaceholderText("Channel name (e.g. Channel 1)")
         cl.addWidget(self.account_name_input)
 
         self.client_id_input = QLineEdit()
@@ -121,11 +121,11 @@ class UploadPage(QWidget):
         cl.addWidget(self.client_secret_input)
 
         self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("Email tài khoản Dailymotion")
+        self.email_input.setPlaceholderText("Dailymotion email")
         cl.addWidget(self.email_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Mật khẩu tài khoản")
+        self.password_input.setPlaceholderText("Account password")
         self.password_input.setEchoMode(QLineEdit.Password)
         cl.addWidget(self.password_input)
 
@@ -133,12 +133,12 @@ class UploadPage(QWidget):
         auth_row = QHBoxLayout()
         auth_row.setSpacing(10)
 
-        self.login_btn = QPushButton("ĐĂNG NHẬP")
+        self.login_btn = QPushButton("LOGIN")
         self.login_btn.setObjectName("ActionButton")
         self.login_btn.clicked.connect(self._handle_login)
         auth_row.addWidget(self.login_btn, 1)
 
-        self.save_btn = QPushButton("LƯU THÔNG TIN")
+        self.save_btn = QPushButton("SAVE INFO")
         self.save_btn.clicked.connect(self._save_current_account)
         auth_row.addWidget(self.save_btn, 1)
         cl.addLayout(auth_row)
@@ -161,11 +161,11 @@ class UploadPage(QWidget):
         self.progress_bar.setValue(0)
         pl.addWidget(self.progress_bar)
 
-        self.progress_label = QLabel("Sẵn sàng upload")
+        self.progress_label = QLabel("Ready to upload")
         self.progress_label.setObjectName("SubtitleLabel")
         pl.addWidget(self.progress_label)
 
-        self.cancel_btn = QPushButton("HỦY UPLOAD")
+        self.cancel_btn = QPushButton("CANCEL UPLOAD")
         self.cancel_btn.setStyleSheet(danger_btn_style())
         self.cancel_btn.setVisible(False)
         self.cancel_btn.clicked.connect(self._cancel_upload)
@@ -190,23 +190,23 @@ class UploadPage(QWidget):
         file_row = QHBoxLayout()
         file_row.setSpacing(10)
         self.file_input = QLineEdit()
-        self.file_input.setPlaceholderText("Chọn file video để upload...")
+        self.file_input.setPlaceholderText("Select video file...")
         self.file_input.setReadOnly(True)
         file_row.addWidget(self.file_input, 1)
 
-        browse_btn = QPushButton("CHỌN FILE")
+        browse_btn = QPushButton("SELECT FILE")
         browse_btn.setObjectName("ActionButton")
-        browse_btn.setFixedWidth(100)
+        browse_btn.setFixedWidth(130)
         browse_btn.clicked.connect(self._select_file)
         file_row.addWidget(browse_btn)
         dl.addLayout(file_row)
 
         self.video_title_input = QLineEdit()
-        self.video_title_input.setPlaceholderText("Tiêu đề video")
+        self.video_title_input.setPlaceholderText("Video title")
         dl.addWidget(self.video_title_input)
 
         self.desc_input = QTextEdit()
-        self.desc_input.setPlaceholderText("Mô tả video (tuỳ chọn)...")
+        self.desc_input.setPlaceholderText("Video description (optional)...")
         self.desc_input.setStyleSheet(
             f"QTextEdit {{ background-color: {C['surface_container_low']}; "
             f"border: none; border-radius: 10px; padding: 12px 16px; "
@@ -237,18 +237,18 @@ class UploadPage(QWidget):
         cat_tag_row.addWidget(self.category_combo, 1)
 
         self.tags_input = QLineEdit()
-        self.tags_input.setPlaceholderText("Tags (phân cách bằng dấu phẩy)")
+        self.tags_input.setPlaceholderText("Tags (comma separated)")
         cat_tag_row.addWidget(self.tags_input, 1)
         dl.addLayout(cat_tag_row)
 
-        self.publish_chk = QCheckBox("Publish ngay sau khi upload")
+        self.publish_chk = QCheckBox("Publish after upload")
         self.publish_chk.setChecked(True)
         self.publish_chk.setCursor(Qt.PointingHandCursor)
         dl.addWidget(self.publish_chk)
 
         dl.addStretch()
 
-        self.upload_btn = QPushButton("UPLOAD LÊN DAILYMOTION")
+        self.upload_btn = QPushButton("UPLOAD TO DAILYMOTION")
         self.upload_btn.setObjectName("ActionButton")
         self.upload_btn.setMinimumHeight(52)
         self.upload_btn.clicked.connect(self._start_upload)
@@ -277,7 +277,7 @@ class UploadPage(QWidget):
         self.channel_combo.clear()
 
         for acc in self._accounts:
-            self.channel_combo.addItem(acc.get("name", "Kênh không tên"))
+            self.channel_combo.addItem(acc.get("name", "Unnamed channel"))
         self.channel_combo.addItem(_ADD_NEW)
 
         # Restore previous selection or default to first real account
@@ -303,7 +303,7 @@ class UploadPage(QWidget):
             self.client_secret_input.clear()
             self.email_input.clear()
             self.password_input.clear()
-            self._set_badge("disconnected", "Chưa xác thực")
+            self._set_badge("disconnected", "Unauthenticated")
             self.delete_ch_btn.setEnabled(False)
             return
 
@@ -315,10 +315,10 @@ class UploadPage(QWidget):
         self.password_input.setText(acc.get("password", ""))
 
         if acc.get("access_token"):
-            self._set_badge("checking", "Đang kiểm tra token...")
+            self._set_badge("checking", "Checking token...")
             self._run_auth(acc, silent=True)
         else:
-            self._set_badge("disconnected", "Chưa đăng nhập")
+            self._set_badge("disconnected", "Not logged in")
 
     def _active_account(self) -> dict | None:
         if 0 <= self._active_idx < len(self._accounts):
@@ -329,7 +329,7 @@ class UploadPage(QWidget):
         """Build an account dict from current form fields."""
         acc = self._active_account() or {}
         return {
-            "name":          self.account_name_input.text().strip() or "Kênh không tên",
+            "name":          self.account_name_input.text().strip() or "Unnamed channel",
             "client_id":     self.client_id_input.text().strip(),
             "client_secret": self.client_secret_input.text().strip(),
             "email":         self.email_input.text().strip(),
@@ -343,7 +343,7 @@ class UploadPage(QWidget):
     def _on_channel_changed(self, idx: int):
         total = self.channel_combo.count()
         if idx == total - 1:
-            # User chose [+ Thêm kênh mới]
+            # User chose [+ Add new channel]
             self._active_idx = -1
         else:
             self._active_idx = idx
@@ -355,7 +355,7 @@ class UploadPage(QWidget):
     def _save_current_account(self):
         new_acc = self._read_form_as_account()
         if not new_acc["client_id"] or not new_acc["email"]:
-            QMessageBox.warning(self, "Thiếu thông tin", "Vui lòng nhập ít nhất Client ID và Email.")
+            QMessageBox.warning(self, "Missing info", "Please enter at least Client ID and Email.")
             return
 
         if self._active_idx == -1:
@@ -368,14 +368,14 @@ class UploadPage(QWidget):
 
         self._save_accounts_to_config()
         self._rebuild_combo()
-        QMessageBox.information(self, "Đã lưu", f"Đã lưu kênh: {new_acc['name']}")
+        QMessageBox.information(self, "Saved", f"Saved kênh: {new_acc['name']}")
 
     def _delete_current_account(self):
         if self._active_idx < 0 or self._active_idx >= len(self._accounts):
             return
         name = self._accounts[self._active_idx].get("name", "")
         reply = QMessageBox.question(
-            self, "Xoá kênh",
+            self, "Delete channel",
             f"Bạn có chắc muốn xoá kênh \"{name}\" không?",
             QMessageBox.Yes | QMessageBox.No,
         )
@@ -412,13 +412,13 @@ class UploadPage(QWidget):
         acc = self._read_form_as_account()
         if not acc["client_id"] or not acc["email"] or not acc["password"]:
             QMessageBox.warning(
-                self, "Thiếu thông tin",
-                "Vui lòng nhập đủ Client ID, Email và Mật khẩu để đăng nhập."
+                self, "Missing info",
+                "Please enter Client ID, Email, and Password to login."
             )
             return
         # Temporarily store form data so AuthWorker can use it
         self._pending_login_acc = acc
-        self._set_badge("checking", "Đang đăng nhập...")
+        self._set_badge("checking", "Logging in...")
         self._set_auth_buttons_enabled(False)
         self._run_auth(acc, silent=False)
 
@@ -437,7 +437,7 @@ class UploadPage(QWidget):
             self._accounts[self._active_idx]["access_token"] = token
             self._save_accounts_to_config()
 
-        self._set_badge("connected", f"Đã kết nối: {screenname}")
+        self._set_badge("connected", f"Connected: {screenname}")
         if not silent:
             self._set_auth_buttons_enabled(True)
             # Auto-save the account including the new token
@@ -445,13 +445,13 @@ class UploadPage(QWidget):
 
     @pyqtSlot(str)
     def _on_auth_error(self, msg: str):
-        self._set_badge("disconnected", "Lỗi đăng nhập")
+        self._set_badge("disconnected", "Login error")
         self._set_auth_buttons_enabled(True)
-        QMessageBox.critical(self, "Lỗi xác thực", f"Không thể đăng nhập:\n{msg}")
+        QMessageBox.critical(self, "Auth error", f"Failed to login:\n{msg}")
 
     @pyqtSlot(str)
     def _on_auth_error_silent(self, _msg: str):
-        self._set_badge("disconnected", "Token hết hạn — cần đăng nhập lại")
+        self._set_badge("disconnected", "Token expired — please login again")
 
     def _save_current_account_silently(self, token: str = ""):
         new_acc = self._read_form_as_account()
@@ -495,7 +495,7 @@ class UploadPage(QWidget):
     # ─────────────────────────────────────────────────────────
     def _select_file(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Chọn file video", "",
+            self, "Select video file", "",
             "Video Files (*.mp4 *.mkv *.avi *.mov *.wmv *.flv)"
         )
         if path:
@@ -514,22 +514,22 @@ class UploadPage(QWidget):
 
         acc = self._active_account()
         if acc is None:
-            QMessageBox.warning(self, "Chưa chọn kênh", "Vui lòng chọn hoặc thêm kênh trước khi upload.")
+            QMessageBox.warning(self, "No channel selected", "Please select or add a channel before uploading.")
             return
 
         if not acc.get("access_token"):
-            QMessageBox.warning(self, "Chưa đăng nhập",
-                                "Kênh này chưa được xác thực. Vui lòng đăng nhập trước.")
+            QMessageBox.warning(self, "Not logged in",
+                                "This channel is unauthenticated. Please login first.")
             return
 
         file_path = self.file_input.text().strip()
         title     = self.video_title_input.text().strip()
 
         if not file_path:
-            QMessageBox.warning(self, "Chọn file", "Vui lòng chọn file video cần upload.")
+            QMessageBox.warning(self, "Select file", "Please select a video file to upload.")
             return
         if not title:
-            QMessageBox.warning(self, "Tiêu đề trống", "Vui lòng nhập tiêu đề cho video.")
+            QMessageBox.warning(self, "Empty title", "Please enter a title for the video.")
             return
 
         cat_key = self.categories_map.get(self.category_combo.currentText(), "tech")
@@ -543,7 +543,7 @@ class UploadPage(QWidget):
 
         self._set_upload_state(uploading=True)
         self.progress_bar.setValue(0)
-        self.progress_label.setText("Đang chuẩn bị...")
+        self.progress_label.setText("Preparing...")
 
         self._upload_worker = UploadWorker(acc, file_path, metadata)
         self._upload_worker.progress.connect(self._on_progress)
@@ -554,7 +554,7 @@ class UploadPage(QWidget):
 
     def _set_upload_state(self, uploading: bool):
         self.upload_btn.setEnabled(not uploading)
-        self.upload_btn.setText("ĐANG UPLOAD..." if uploading else "UPLOAD LÊN DAILYMOTION")
+        self.upload_btn.setText("UPLOADING..." if uploading else "UPLOAD TO DAILYMOTION")
         self.cancel_btn.setVisible(uploading)
         self._set_auth_buttons_enabled(not uploading)
 
@@ -571,16 +571,16 @@ class UploadPage(QWidget):
     def _on_success(self, video_id: str):
         self._set_upload_state(uploading=False)
         self.progress_bar.setValue(1000)
-        self.progress_label.setText("Upload thành công!")
+        self.progress_label.setText("Upload successful!")
         self.file_input.clear()
         self.video_title_input.clear()
         self.desc_input.clear()
         self.tags_input.clear()
 
-        acc_name = (self._active_account() or {}).get("name", "kênh")
+        acc_name = (self._active_account() or {}).get("name", "channel")
         QMessageBox.information(
-            self, "Upload thành công!",
-            f"Video đã được đăng lên {acc_name}!\n\n"
+            self, "Upload successful!",
+            f"Video uploaded to {acc_name}!\n\n"
             f"Video ID: {video_id}\n"
             f"URL: https://www.dailymotion.com/video/{video_id}"
         )
@@ -588,14 +588,14 @@ class UploadPage(QWidget):
     @pyqtSlot(str)
     def _on_error(self, msg: str):
         self._set_upload_state(uploading=False)
-        self.progress_label.setText("Upload thất bại")
-        QMessageBox.critical(self, "Lỗi Upload", f"Đã xảy ra lỗi:\n{msg}")
+        self.progress_label.setText("Upload failed")
+        QMessageBox.critical(self, "Upload Error", f"An error occurred:\n{msg}")
 
     def _cancel_upload(self):
         if self._upload_worker and self._upload_worker.isRunning():
             reply = QMessageBox.question(
-                self, "Hủy Upload",
-                "Bạn có chắc muốn hủy upload đang chạy?",
+                self, "Cancel Upload",
+                "Are you sure you want to cancel the upload?",
                 QMessageBox.Yes | QMessageBox.No,
             )
             if reply == QMessageBox.Yes:
@@ -603,7 +603,7 @@ class UploadPage(QWidget):
                 self._upload_worker.wait()
                 self._set_upload_state(uploading=False)
                 self.progress_bar.setValue(0)
-                self.progress_label.setText("Upload đã bị hủy.")
+                self.progress_label.setText("Upload cancelled.")
 
     def refresh_theme(self):
         """Standardized theme refresh — handled by QApplication stylesheet."""

@@ -1,7 +1,3 @@
-"""
-front/pages/settings_page.py — Application Settings (AuraOS Redesign)
-======================================================================
-"""
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QFont

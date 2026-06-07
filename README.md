@@ -1,13 +1,13 @@
-# 🦇 BATMAN V3 — TRACK (Unified Architecture)
+# 🐕 Cậu Vàng — TRACK (Unified Architecture)
 
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Architecture](https://img.shields.io/badge/Architecture-Front%2FBack-orange)
 
 ## 🚀 Giới thiệu
-**BATMAN V3** là phiên bản mới nhất của ứng dụng **TRACK**, một công cụ mạnh mẽ chuyên dùng để phân tích (Analyze), quét (Scan) và tải xuống (Download) dữ liệu từ Dailymotion và các nền tảng video khác.
+**Cậu Vàng** là phiên bản mới nhất của ứng dụng **TRACK**, một công cụ mạnh mẽ chuyên dùng để phân tích (Analyze), quét (Scan) và tải xuống (Download) dữ liệu từ Dailymotion và các nền tảng video khác.
 
-⚠️ **Lưu ý:** Đây là branch `batman` với cấu trúc code mới, tách biệt hoàn toàn giữa giao diện (UI) và logic (Business Logic).
+⚠️ **Lưu ý:** Đây là branch với cấu trúc code mới, tách biệt hoàn toàn giữa giao diện (UI) và logic (Business Logic).
 
 ---
 
@@ -59,7 +59,7 @@ python main.py
 
 ## 📦 Đóng gói ứng dụng (Build App)
 
-Để tạo file `.exe` hoặc `.app` chạy trực tiếp mà không cần cài Python, truy cập thư mục `app_builder_2` và chọn đúng OS của bạn:
+Để tạo file chạy trực tiếp mà không cần cài Python, truy cập thư mục `app_builder_2` và chọn đúng OS của bạn:
 
 - **Windows:** Chạy `app_builder_2\windows\build_win.bat`
 - **macOS:** Chạy `app_builder_2/macos/build_mac.sh`
@@ -72,7 +72,6 @@ File kết quả sẽ nằm trong thư mục `dist/`.
 ## 📝 Nhật ký thay đổi (Changelog)
 - **v3.0**: Tái cấu trúc thư mục `front/` và `back/`.
 - **v3.1**: Cập nhật `app_builder_2` hỗ trợ build đa nền tảng với cấu trúc mới.
-- **v3.2**: Thêm `README.md` chính thức cho nhánh `batman`.
 
 ---
-*Phát triển bởi Batman Team.*
+*Phát triển bởi Cậu Vàng Team.*

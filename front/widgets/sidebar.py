@@ -1,7 +1,3 @@
-"""
-sidebar.py — Vertical Navigation Sidebar (AuraOS)
-================================================
-"""
 
 from PyQt5.QtWidgets import (
     QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -41,14 +37,12 @@ class Sidebar(QFrame):
         logo_layout.setContentsMargins(24, 0, 24, 32)
         logo_layout.setSpacing(4)
         
-        logo_title = QLabel("AuraOS")
+        logo_title = QLabel("Cậu vàng")
         logo_title.setFont(QFont(FONT_HEADLINE, 20, QFont.Bold))
         logo_title.setStyleSheet(f"color: {C['primary']}; letter-spacing: -0.5px; background: transparent;")
         logo_layout.addWidget(logo_title)
         
-        logo_sub = QLabel("BATMAN V3")
-        logo_sub.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 8px; font-weight: 800; letter-spacing: 2px; background: transparent;")
-        logo_layout.addWidget(logo_sub)
+
         self.main_layout.addWidget(logo_container)
 
         # ── Nav Container (for relative marker movement) ──

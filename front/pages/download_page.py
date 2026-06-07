@@ -1,7 +1,3 @@
-"""
-front/pages/download_page.py — Downloader Page (AuraOS Redesign V2)
-====================================================================
-"""
 
 import os
 import threading
@@ -54,7 +50,7 @@ class QueueItemWidget(QFrame):
 
         if not self.is_active:
             remove_btn = QPushButton("DELETE")
-            remove_btn.setFixedSize(60, 28)
+            remove_btn.setFixedSize(75, 28)
             remove_btn.setCursor(Qt.PointingHandCursor)
             remove_btn.setStyleSheet(f"QPushButton {{ background-color: transparent; color: {C['error']}; border: 1px solid {C['error']}; border-radius: 4px; font-size: 10px; font-weight: 800; }}")
             remove_btn.clicked.connect(lambda: self.parent_page.remove_item(self.index))
