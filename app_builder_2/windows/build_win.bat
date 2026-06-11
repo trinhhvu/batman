@@ -6,7 +6,7 @@ REM Chạy từ thư mục: app_builder_2\windows\
 
 set ROOT=..\..
 set ICON=%ROOT%\assets\icon.png
-set NAME=BATMAN V3
+set NAME=CauVang
 set MAIN=%ROOT%\main.py
 set DIST=%ROOT%\dist
 

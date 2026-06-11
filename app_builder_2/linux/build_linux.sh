@@ -7,7 +7,7 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-NAME="BATMAN V3"
+NAME="CauVang"
 MAIN="$ROOT/main.py"
 DIST="$ROOT/dist"
 
