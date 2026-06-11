@@ -222,7 +222,7 @@ class DailymotionTracker:
                 api_fields = (
                     "thumbnail_url,thumbnail_480_url,thumbnail_720_url,owner,channel,"
                     "title,views_total,views_last_day,views_last_hour,"
-                    "updated_time,url,geoblocking,duration"
+                    "created_time,updated_time,url,geoblocking,duration"
                 )
                 api_url_tmpl = "https://api.dailymotion.com/video/{video_id}?fields=" + api_fields
                 headers = {"User-Agent": USER_AGENT, "Referer": "https://www.dailymotion.com/"}
@@ -275,6 +275,23 @@ class DailymotionTracker:
                 pass
         return results
 
+    def cleanup_partial_files(self):
+        """Delete partial/temp download files from download_path."""
+        import glob as _glob
+        patterns = [
+            "*.part", "*.ytdl", "*.part-Frag*", "Frag*",
+            "*.f[0-9]*.mp4", "*.f[0-9]*.webm", "*.f[0-9]*.m4a",
+        ]
+        deleted = 0
+        for pattern in patterns:
+            for path in _glob.glob(os.path.join(self.download_path, pattern)):
+                try:
+                    os.remove(path)
+                    deleted += 1
+                except Exception:
+                    pass
+        return deleted
+
     def download_video(self, video_data: dict, progress_callback=None) -> tuple:
         url = video_data["url"]
         ydl_opts = {
@@ -303,10 +320,14 @@ class DailymotionTracker:
 
             ydl_opts["progress_hooks"] = [_hook]
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            return (
-                ydl.prepare_filename(info),
-                info.get("title"),
-                info.get("description", ""),
-            )
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                return (
+                    ydl.prepare_filename(info),
+                    info.get("title"),
+                    info.get("description", ""),
+                )
+        except Exception:
+            self.cleanup_partial_files()
+            raise

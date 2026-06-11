@@ -58,7 +58,7 @@ class Sidebar(QFrame):
         self.marker.setFixedWidth(260)
         self.marker.setStyleSheet(f"""
             background-color: {C['surface_container']};
-            border-left: 4px solid #000000;
+            border-left: 4px solid {C['on_surface']};
         """)
         self.marker.lower() # Place behind buttons
         self.marker.show()
@@ -128,7 +128,7 @@ class Sidebar(QFrame):
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background: transparent;
-                    color: {"#000000" if active else C['on_surface_variant']};
+                    color: {C['on_surface'] if active else C['on_surface_variant']};
                     border: none;
                     padding-left: 24px;
                     font-weight: {"700" if active else "500"};

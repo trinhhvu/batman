@@ -3,6 +3,7 @@ import os
 import glob
 import datetime
 import threading
+import webbrowser
 from datetime import datetime as dt
 
 from PyQt5.QtWidgets import (
@@ -16,14 +17,16 @@ from PyQt5.QtCore import Qt, pyqtSignal, QThreadPool, QTimer
 
 from front.design import COLORS as C, FONT_HEADLINE, FONT_BODY, BORDER_RADIUS_CARD, action_btn_style, danger_btn_style
 from front.pages.analyze_page import CopyButton
+from front.widgets.notification import show_notification
 from back.tracker import DailymotionTracker
 from back.workers import ScannerSignals, ScanDownloadWorker
-from back.config import save_download_path
+from back.config import load_download_path, save_download_path
 from back.api_client import fetch_thumbnail_data
 
 
 class ScannerVideoCard(QFrame):
     download_single = pyqtSignal(dict)
+    send_to_download = pyqtSignal(str)
 
     def __init__(self, video_data: dict):
         super().__init__()
@@ -40,16 +43,16 @@ class ScannerVideoCard(QFrame):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Thumbnail Area
+        # ── Thumbnail ──
         thumb_container = QFrame()
-        thumb_container.setFixedHeight(260)
         thumb_container.setObjectName("CardThumb")
-        
+        thumb_container.setFixedHeight(260)
+
         thumb_label = QLabel(thumb_container)
         thumb_label.setGeometry(0, 0, 460, 260)
         thumb_label.setAlignment(Qt.AlignCenter)
-        
-        thumb_url = self.video_data.get('thumbnail')
+
+        thumb_url = self.video_data.get('thumbnail_720_url') or self.video_data.get('thumbnail', '')
         if thumb_url:
             try:
                 img_data = fetch_thumbnail_data(thumb_url)
@@ -59,34 +62,113 @@ class ScannerVideoCard(QFrame):
                 thumb_label.setPixmap(pixmap)
             except: pass
 
-        # Selection Checkbox
+        # GET button (top-right, same as VideoCard in Analyze)
+        dl_btn = QPushButton("GET", thumb_container)
+        dl_btn.setObjectName("ActionButton")
+        dl_btn.setFixedSize(56, 32)
+        dl_btn.setCursor(Qt.PointingHandCursor)
+        dl_btn.move(460 - 72, 12)
+        def _on_get():
+            url = self.video_data.get('url', '')
+            if url:
+                self.send_to_download.emit(url)
+        dl_btn.clicked.connect(_on_get)
+
+        # Selection Checkbox (top-left on thumbnail)
         self.checkbox = QCheckBox(thumb_container)
         self.checkbox.move(16, 16)
         self.checkbox.setCursor(Qt.PointingHandCursor)
 
-        # Content Body
+        # ── Content Body ──
         body = QWidget()
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(24, 24, 24, 24)
         body_layout.setSpacing(16)
 
-        title_str = (self.video_data.get('title') or 'Unknown').upper()
+        # Title
+        title_row = QHBoxLayout()
+        title_str = (self.video_data.get('title') or 'N/A').upper()
         title_label = QLabel(title_str)
         title_label.setWordWrap(True)
         title_label.setFont(QFont(FONT_HEADLINE, 11, QFont.Bold))
-        body_layout.addWidget(title_label)
+        title_row.addWidget(title_label, 1)
 
-        # Stats
+        copy_title = CopyButton(title_str, "TITLE")
+        title_row.addWidget(copy_title)
+        body_layout.addLayout(title_row)
+
+        # Channel
+        channel = QLabel(f"<span style='color: {C['primary']}; font-weight: 700;'>{self.video_data.get('channel', 'N/A')}</span> \u2022 {self.video_data.get('id', 'N/A')}")
+        body_layout.addWidget(channel)
+
+        # Publish Date
+        created_ts = self.video_data.get('created_time')
+        if created_ts:
+            try:
+                pub_date = datetime.datetime.fromtimestamp(int(created_ts)).strftime('%Y-%m-%d %H:%M')
+            except Exception:
+                pub_date = 'N/A'
+        else:
+            pub_date = 'N/A'
+        date_label = QLabel(f"\ud83d\udcc5 Published: {pub_date}")
+        date_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 12px;")
+        body_layout.addWidget(date_label)
+
+        # Stats Grid
         stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(8)
+        stats_layout.setSpacing(10)
+
         v_24h = int(self.video_data.get('views_last_day') or 0)
         v_1h = int(self.video_data.get('views_last_hour') or 0)
-        
+        v_total = int(self.video_data.get('views_total') or self.video_data.get('view_count') or 0)
+
+        stats_layout.addWidget(self._stat_box("TOTAL", f"{v_total:,}"))
         stats_layout.addWidget(self._stat_box("24H", f"{v_24h:,}"))
         stats_layout.addWidget(self._stat_box("1H", f"{v_1h:,}"))
         body_layout.addLayout(stats_layout)
 
-        # Progress / Status
+        # Geoblock Banner
+        geo = str(self.video_data.get('geoblocking') or 'allow')
+        geo_banner = QLabel()
+        geo_banner.setObjectName("GeoBanner")
+        geo_banner.setContentsMargins(12, 6, 12, 6)
+        geo_banner.setAlignment(Qt.AlignCenter)
+        if "deny" in geo:
+            geo_banner.setText("GEOBLOCK ACTIVE")
+            geo_banner.setProperty("state", "error")
+        else:
+            geo_banner.setText("CLEAN / NO GEOBLOCK")
+            geo_banner.setProperty("state", "success")
+        body_layout.addWidget(geo_banner)
+
+        # Footer Actions
+        actions = QHBoxLayout()
+        actions.setSpacing(12)
+
+        video_url = self.video_data.get('url', '')
+        btn_url = QPushButton("URL")
+        btn_url.setCursor(Qt.PointingHandCursor)
+        def _copy_url():
+            QApplication.clipboard().setText(video_url)
+            show_notification(self.window(), "COPIED", "Video URL copied to clipboard")
+            if video_url:
+                webbrowser.open(video_url)
+        btn_url.clicked.connect(_copy_url)
+
+        btn_thumb = QPushButton("IMAGE")
+        btn_thumb.setCursor(Qt.PointingHandCursor)
+        def _copy_thumb():
+            QApplication.clipboard().setText(thumb_url)
+            show_notification(self.window(), "COPIED", "Thumbnail URL copied to clipboard")
+            if thumb_url:
+                webbrowser.open(thumb_url)
+        btn_thumb.clicked.connect(_copy_thumb)
+
+        actions.addWidget(btn_url, 1)
+        actions.addWidget(btn_thumb, 1)
+        body_layout.addLayout(actions)
+
+        # Progress / Status (Scanner-specific)
         self.progress = QProgressBar()
         self.progress.setFixedHeight(8)
         self.progress.setTextVisible(False)
@@ -96,7 +178,7 @@ class ScannerVideoCard(QFrame):
         self.status_label = QLabel("READY")
         self.status_label.setObjectName("StatusLabel")
         body_layout.addWidget(self.status_label)
-        
+
         main_layout.addWidget(thumb_container)
         main_layout.addWidget(body)
 
@@ -106,20 +188,21 @@ class ScannerVideoCard(QFrame):
         l = QVBoxLayout(box)
         l.setContentsMargins(16, 12, 16, 12)
         l.setSpacing(4)
-        
+
         cap = QLabel(label)
         cap.setObjectName("SectionTitle")
         val = QLabel(value)
         val.setFont(QFont(FONT_HEADLINE, 14, QFont.Bold))
-        
+
         l.addWidget(cap)
         l.addWidget(val)
         return box
 
     def set_progress(self, frac, speed):
         self.progress.show()
-        self.progress.setValue(int(frac * 100))
-        self.status_label.setText(f"DOWNLOADING {int(frac * 100)}% • {speed}")
+        pct = int(frac * 100)
+        self.progress.setValue(pct)
+        self.status_label.setText(f"DOWNLOADING {pct}% \u2022 {speed}")
 
     def set_status(self, text, state="normal"):
         self.status_label.setText(text.upper())
@@ -129,6 +212,7 @@ class ScannerVideoCard(QFrame):
 
 
 class ScannerPage(QWidget):
+    request_download = pyqtSignal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tracker = DailymotionTracker()
@@ -196,10 +280,32 @@ class ScannerPage(QWidget):
         tool_layout.addWidget(self.scan_btn)
         layout.addWidget(self.toolbar)
 
+        # Folder Picker
+        folder_card = QFrame()
+        folder_card.setObjectName("BentoCard")
+        f_layout = QHBoxLayout(folder_card)
+        f_layout.setContentsMargins(20, 10, 20, 10)
+        
+        folder_icon = QLabel("\ud83d\udcc1")
+        folder_icon.setFixedWidth(24)
+        f_layout.addWidget(folder_icon)
+        
+        self.download_path = load_download_path()
+        self.folder_label = QLabel(self.download_path)
+        self.folder_label.setObjectName("SubtitleLabel")
+        self.folder_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 12px;")
+        f_layout.addWidget(self.folder_label, 1)
+        
+        change_btn = QPushButton("CHANGE")
+        change_btn.setCursor(Qt.PointingHandCursor)
+        change_btn.setFixedSize(100, 36)
+        change_btn.clicked.connect(self._change_folder)
+        f_layout.addWidget(change_btn)
+        layout.addWidget(folder_card)
+
         # Results Grid
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("background: transparent; border: none;")
         self.grid_widget = QWidget()
         self.grid_layout = QGridLayout(self.grid_widget)
         self.grid_layout.setSpacing(24)
@@ -229,6 +335,14 @@ class ScannerPage(QWidget):
         actions.addWidget(self.status_bar)
         layout.addLayout(actions)
 
+    def _change_folder(self):
+        path = QFileDialog.getExistingDirectory(self, "Select Download Folder", self.download_path)
+        if path:
+            self.download_path = path
+            self.tracker.set_download_path(path)
+            self.folder_label.setText(path)
+            save_download_path(path)
+
     def _start_scan(self):
         url = self.url_input.text().strip()
         if not url: return
@@ -254,6 +368,7 @@ class ScannerPage(QWidget):
         for i, data in enumerate(results):
             vid = data.get("id", str(i))
             card = ScannerVideoCard(data)
+            card.send_to_download.connect(self.request_download.emit)
             self.video_widgets[vid] = card
             self.grid_layout.addWidget(card, i // 2, i % 2)
         self.status_bar.setText(f"Found {len(results)} videos")
@@ -267,6 +382,8 @@ class ScannerPage(QWidget):
         self._cancel_event.set()
         self.cancel_dl_btn.setEnabled(False)
         self.status_bar.setText("Stopping...")
+        # Cleanup partial files
+        self.tracker.cleanup_partial_files()
 
     def _on_all_cancelled(self):
         self.dl_btn.setEnabled(True)
@@ -277,6 +394,8 @@ class ScannerPage(QWidget):
     def _start_download_queue(self):
         selected = [w.video_data for w in self.video_widgets.values() if w.checkbox.isChecked()]
         if not selected: return
+        # Update tracker download path before starting
+        self.tracker.set_download_path(self.download_path)
         self._cancel_event.clear()
         self.dl_btn.setEnabled(False)
         self.cancel_dl_btn.setVisible(True)
@@ -301,3 +420,4 @@ class ScannerPage(QWidget):
     def refresh_theme(self):
         """Standardized refresh handled by QApplication."""
         pass
+

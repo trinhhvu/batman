@@ -79,6 +79,7 @@ class TrackerApp(QMainWindow):
     def _connect_signals(self):
         self.analyze_page.request_download.connect(self._send_to_download_page)
         self.research_page.request_download.connect(self._send_to_download_page)
+        self.scanner_page.request_download.connect(self._send_to_download_page)
 
     def _send_to_download_page(self, url: str):
         self.stack.setCurrentIndex(1)

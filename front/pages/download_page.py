@@ -277,6 +277,7 @@ class DownloadPage(QWidget):
 
     def _cancel_download(self):
         self.engine.cancel_download()
+        self.engine.cleanup_partial_files()
         self.cancel_btn.setEnabled(False)
         self.cancel_btn.setText("Stopping...")
 

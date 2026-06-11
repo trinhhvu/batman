@@ -20,7 +20,7 @@ HEADERS = {"User-Agent": USER_AGENT, "Referer": "https://www.dailymotion.com/"}
 DETAIL_FIELDS = (
     "thumbnail_url,thumbnail_1080_url,thumbnail_720_url,thumbnail_480_url,owner,channel,"
     "title,views_total,views_last_day,views_last_hour,"
-    "updated_time,url,geoblocking"
+    "created_time,updated_time,url,geoblocking"
 )
 
 

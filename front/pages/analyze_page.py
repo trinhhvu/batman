@@ -2,6 +2,7 @@
 import os
 import re
 import datetime
+import webbrowser
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -122,7 +123,11 @@ class VideoCard(QFrame):
         dl_btn.setFixedSize(56, 32)
         dl_btn.setCursor(Qt.PointingHandCursor)
         dl_btn.move(460 - 72, 12)
-        dl_btn.clicked.connect(lambda: self.send_to_download.emit(self.data.get('url', '')))
+        def _on_get():
+            url = self.data.get('url', '')
+            if url:
+                self.send_to_download.emit(url)
+        dl_btn.clicked.connect(_on_get)
 
         # ── Content Body ──
         body = QWidget()
@@ -146,6 +151,19 @@ class VideoCard(QFrame):
         # Channel
         channel = QLabel(f"<span style='color: {C['primary']}; font-weight: 700;'>{self.data.get('channel', 'N/A')}</span> • {self.data.get('id', 'N/A')}")
         body_layout.addWidget(channel)
+
+        # Publish Date
+        created_ts = self.data.get('created_time')
+        if created_ts:
+            try:
+                pub_date = datetime.datetime.fromtimestamp(int(created_ts)).strftime('%Y-%m-%d %H:%M')
+            except Exception:
+                pub_date = 'N/A'
+        else:
+            pub_date = 'N/A'
+        date_label = QLabel(f"📅 Published: {pub_date}")
+        date_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 12px;")
+        body_layout.addWidget(date_label)
 
         # Stats Grid
         stats_layout = QHBoxLayout()
@@ -178,11 +196,14 @@ class VideoCard(QFrame):
         actions = QHBoxLayout()
         actions.setSpacing(12)
         
+        video_url = self.data.get('url', '')
         btn_url = QPushButton("URL")
         btn_url.setCursor(Qt.PointingHandCursor)
         def _copy_url():
-            QApplication.clipboard().setText(self.data.get('url', ''))
+            QApplication.clipboard().setText(video_url)
             show_notification(self.window(), "COPIED", "Video URL copied to clipboard")
+            if video_url:
+                webbrowser.open(video_url)
         btn_url.clicked.connect(_copy_url)
         
         btn_thumb = QPushButton("IMAGE")
@@ -190,6 +211,8 @@ class VideoCard(QFrame):
         def _copy_thumb():
             QApplication.clipboard().setText(thumb_url)
             show_notification(self.window(), "COPIED", "Thumbnail URL copied to clipboard")
+            if thumb_url:
+                webbrowser.open(thumb_url)
         btn_thumb.clicked.connect(_copy_thumb)
         
         actions.addWidget(btn_url, 1)
