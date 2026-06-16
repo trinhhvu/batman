@@ -299,7 +299,7 @@ class DailymotionTracker:
             "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
             "merge_output_format": "mp4",
             "quiet": True, "no_warnings": True,
-            "concurrent_fragment_downloads": 16,
+            "concurrent_fragment_downloads": 3,
             "nocheckcertificate": True, "legacyserverconnect": True,
             "force_ipv4": True, "user_agent": USER_AGENT,
             "referer": "https://www.dailymotion.com/"

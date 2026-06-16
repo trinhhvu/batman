@@ -78,7 +78,7 @@ class DownloadEngine:
             'outtmpl': os.path.join(self.download_path, '%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook],
             'ffmpeg_location': get_ffmpeg_path(),
-            'concurrent_fragment_downloads': 16,
+            'concurrent_fragment_downloads': 3,
             'retries': 20,
             'fragment_retries': 20,
             'quiet': True,
