@@ -301,9 +301,15 @@ class DailymotionTracker:
             "quiet": True, "no_warnings": True,
             "concurrent_fragment_downloads": 3,
             "nocheckcertificate": True, "legacyserverconnect": True,
-            "force_ipv4": True, "user_agent": USER_AGENT,
+            "user_agent": USER_AGENT,
             "referer": "https://www.dailymotion.com/"
         }
+        
+        import shutil
+        if shutil.which("aria2c"):
+            ydl_opts["external_downloader"] = "aria2c"
+            ydl_opts["external_downloader_args"] = {"aria2c": ["-c", "-j", "5", "-x", "5", "-s", "5", "-k", "1M"]}
+            ydl_opts.pop("concurrent_fragment_downloads", None)
         if progress_callback:
             vid = video_data.get("id", "")
 

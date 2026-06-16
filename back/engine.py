@@ -73,7 +73,7 @@ class DownloadEngine:
         }
         fmt = q_map.get(quality, "best")
 
-        return {
+        opts = {
             'format': fmt,
             'outtmpl': os.path.join(self.download_path, '%(title)s.%(ext)s'),
             'progress_hooks': [progress_hook],
@@ -85,11 +85,18 @@ class DownloadEngine:
             'no_warnings': True,
             'nocheckcertificate': True,
             'legacyserverconnect': True,
-            'force_ipv4': True,
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'referer': 'https://www.dailymotion.com/',
             'socket_timeout': 30
         }
+        
+        import shutil
+        if shutil.which("aria2c"):
+            opts["external_downloader"] = "aria2c"
+            opts["external_downloader_args"] = {"aria2c": ["-c", "-j", "5", "-x", "5", "-s", "5", "-k", "1M"]}
+            opts.pop("concurrent_fragment_downloads", None)
+            
+        return opts
 
     def start_download(self, url: str, quality: str, progress_hook):
         if not url:
